@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { supabaseAdmin } from '@/lib/supabase'
+import { getSupabaseAdmin } from '@/lib/supabase'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!
@@ -10,13 +10,13 @@ export async function POST(request: NextRequest) {
   const { client_id, tema } = await request.json()
 
   // Busca o brand kit do cliente
-  const { data: brandKit } = await supabaseAdmin
+  const { data: brandKit } = await getSupabaseAdmin()
     .from('brand_kit')
     .select('*')
     .eq('client_id', client_id)
     .single()
 
-  const { data: cliente } = await supabaseAdmin
+  const { data: cliente } = await getSupabaseAdmin()
     .from('clients')
     .select('*')
     .eq('id', client_id)
@@ -51,7 +51,7 @@ Retorne APENAS um JSON com:
   const resultado = JSON.parse(content.text)
 
   // Salva no banco
-  const { data: post } = await supabaseAdmin
+  const { data: post } = await getSupabaseAdmin()
     .from('contents')
     .insert({
       client_id,
