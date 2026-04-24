@@ -333,16 +333,18 @@ export default function ChatPage() {
         }
 
         .appShell {
-          height: 100vh;
-          width: 100%;
-          display: flex;
-          overflow: hidden;
-          background:
-            radial-gradient(circle at top right, rgba(14,165,233,.16), transparent 34%),
-            linear-gradient(135deg, #08111F 0%, #0B1220 45%, #111827 100%);
-          color: #E5E7EB;
-          font-family: Inter, Montserrat, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        }
+         .appShell {
+                   height: 100vh;
+                 width: 100%;
+              max-width: 1400px;
+              margin: 0 auto;
+               display: flex;
+              overflow: hidden;
+            background:
+    radial-gradient(circle at top right, rgba(14,165,233,.16), transparent 34%),
+    linear-gradient(135deg, #0B111F 0%, #0B1220 45%, #111827 100%);
+  color: #E5E7EB;
+}
 
         .sidebar {
           width: 250px;
