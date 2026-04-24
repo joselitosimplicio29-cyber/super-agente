@@ -1,575 +1,1125 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { useEffect, useRef, useState } from 'react'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
-
-interface Cliente { id: string; nome: string }
-interface Conteudo { legenda: string; hashtags: string; prompt_imagem: string }
-interface Historico {
-  id: string; tema: string; legenda: string; hashtags: string
-  status: string; created_at: string; clients?: { nome: string }
-}
-interface Evento {
-  id: string; titulo: string; data: string; hora: string; tipo: string; local: string; observacoes?: string
+interface Message {
+  role: 'user' | 'assistant'
+  content: string | any[]
+  preview?: string
+  fileName?: string
 }
 
-const AZUL = '#1E3A8A'
-const AZUL_MEDIO = '#2d52b8'
-const AZUL_CLARO = '#3b63d4'
-const AMARELO = '#F59E0B'
-const AMARELO_CLARO = '#fbbf24'
-const FUNDO = '#0f1729'
-const CARD = '#162040'
-const CARD2 = '#1a2850'
-const BORDA = '#1e3a8a33'
-
-export default function Home() {function ClientesPage() {
-  const [clientes, setClientes] = useState<any[]>([])
-  const [brandKits, setBrandKits] = useState<Record<string, any>>({})
-  const [carregando, setCarregando] = useState(true)
-
-  useEffect(() => { carregarClientesPage() }, [])
-
-  async function carregarClientesPage() {
-    setCarregando(true)
-    try {
-      const { data } = await supabase
-        .from('clients')
-        .select('*, brand_kit(*), contratos(*)')
-        .order('nome')
-      if (data) {
-        setClientes(data)
-        const kits: Record<string, any> = {}
-        data.forEach((c: any) => {
-          if (c.brand_kit?.length > 0) kits[c.id] = c.brand_kit[0]
-        })
-        setBrandKits(kits)
-      }
-    } catch {}
-    finally { setCarregando(false) }
-  }
-
-  if (carregando) return (
-    <div style={{ textAlign: 'center', color: '#ffffff33', padding: 60, fontSize: 14 }}>⏳ Carregando clientes...</div>
-  )
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ background: '#162040', border: '1px solid #1e3a8a33', borderRadius: 20, padding: 28 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <div style={{ fontSize: 12, color: '#F59E0B', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>👥 Clientes Ativos ({clientes.length})</div>
-          <button style={{ background: '#F59E0B', border: 'none', borderRadius: 10, color: '#1a1a1a', padding: '8px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ Novo Cliente</button>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-          {clientes.map((c: any) => {
-            const kit = brandKits[c.id]
-            const contrato = c.contratos?.[0]
-            return (
-              <div key={c.id} style={{ background: '#1a2850', border: '1px solid #1e3a8a33', borderRadius: 14, padding: '18px 20px', cursor: 'pointer', transition: 'all 0.2s' }}
-                onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.borderColor = '#F59E0B66'}
-                onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.borderColor = '#1e3a8a33'}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {kit ? (
-                      [kit.cor_primaria, kit.cor_secundaria, kit.cor_acento].map((cor: string, i: number) => (
-                        <div key={i} style={{ width: 16, height: 16, borderRadius: '50%', background: cor, border: '1px solid rgba(255,255,255,0.2)' }} />
-                      ))
-                    ) : (
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: '#1E3A8A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🏢</div>
-                    )}
-                  </div>
-                  <span style={{ background: '#22c55e22', border: '1px solid #22c55e44', color: '#22c55e', fontSize: 9, padding: '2px 7px', borderRadius: 20, fontWeight: 700 }}>ATIVO</span>
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#e8eaf6', marginBottom: 4 }}>{c.nome}</div>
-                {kit?.instagram && <div style={{ fontSize: 11, color: '#F59E0B', marginBottom: 6 }}>{kit.instagram}</div>}
-                <div style={{ fontSize: 20, fontWeight: 900, color: '#F59E0B' }}>
-                  R$ {(c.valor_mensal || contrato?.valor_mensal || 0).toLocaleString('pt-BR')}
-                  <span style={{ fontSize: 11, color: '#ffffff33', fontWeight: 400 }}>/mês</span>
-                </div>
-                {kit?.tom_de_voz && <div style={{ fontSize: 11, color: '#ffffff44', marginTop: 4 }}>{kit.tom_de_voz}</div>}
-                {kit?.slogan && <div style={{ fontSize: 11, color: '#ffffff33', marginTop: 2, fontStyle: 'italic' }}>"{kit.slogan}"</div>}
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
+interface Client {
+  id: string
+  nome: string
+  instagram?: string
+  nicho?: string
 }
-  const [pagina, setPagina] = useState('gerar')
-  const [clientes, setClientes] = useState<Cliente[]>([])
-  const [clienteId, setClienteId] = useState('')
-  const [clienteNome, setClienteNome] = useState('')
-  const [tema, setTema] = useState('')
+
+export default function ChatPage() {
+  const [messages, setMessages] = useState<Message[]>([])
+  const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [resultado, setResultado] = useState<Conteudo | null>(null)
-  const [historico, setHistorico] = useState<Historico[]>([])
-  const [copiado, setCopiado] = useState('')
-  const [totalGerados, setTotalGerados] = useState(0)
+  const [clientes, setClientes] = useState<Client[]>([])
+  const [clienteSelecionado, setClienteSelecionado] = useState<Client | null>(null)
+  const [sidebarAberta, setSidebarAberta] = useState(true)
+  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [arquivo, setArquivo] = useState<{ base64: string; type: string; name: string } | null>(null)
+  const [preview, setPreview] = useState<string | null>(null)
 
-  // Financeiro state
-  const [transacoes] = useState([
-    { id: 1, tipo: 'entrada', descricao: 'Câmara Umburanas', valor: 1600, data: '2026-04-01', categoria: 'Contrato' },
-    { id: 2, tipo: 'entrada', descricao: 'Prefeitura Umburanas', valor: 1000, data: '2026-04-02', categoria: 'Contrato' },
-    { id: 3, tipo: 'entrada', descricao: 'CCAAU', valor: 2500, data: '2026-04-03', categoria: 'Contrato' },
-    { id: 4, tipo: 'entrada', descricao: 'ADM Mármores', valor: 500, data: '2026-04-05', categoria: 'Contrato' },
-    { id: 5, tipo: 'saida', descricao: 'Nycolas - Salário', valor: 300, data: '2026-04-05', categoria: 'Folha' },
-    { id: 6, tipo: 'entrada', descricao: 'Ourocar', valor: 200, data: '2026-04-06', categoria: 'Contrato' },
-    { id: 7, tipo: 'saida', descricao: 'Hospedagem servidor', valor: 80, data: '2026-04-07', categoria: 'Tecnologia' },
-    { id: 8, tipo: 'entrada', descricao: 'Pablo', valor: 500, data: '2026-04-08', categoria: 'Contrato' },
-  ])
-
-  // Agenda state — busca do Supabase
-  const [eventos, setEventos] = useState<Evento[]>([])
-  const [carregandoEventos, setCarregandoEventos] = useState(true)
-  const [novoEvento, setNovoEvento] = useState({ titulo: '', data: '', hora: '', local: '', tipo: 'Reunião' })
-  const [salvandoEvento, setSalvandoEvento] = useState(false)
-  const [modalEvento, setModalEvento] = useState(false)
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    carregarClientes()
-    carregarHistorico()
-    carregarEventos()
+    fetch('/api/cadastrar-cliente')
+      .then(r => r.json())
+      .then(d => {
+        if (d.clientes) setClientes(d.clientes)
+      })
+      .catch(() => {})
   }, [])
 
-  async function carregarClientes() {
-    const { data } = await supabase.from('clients').select('id, nome').order('nome')
-    if (data) setClientes(data)
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, loading])
+
+  function handleArquivo(file: File) {
+    const reader = new FileReader()
+
+    reader.onload = e => {
+      const result = e.target?.result as string
+      const base64 = result.split(',')[1]
+
+      setArquivo({
+        base64,
+        type: file.type,
+        name: file.name || 'imagem-colada.png'
+      })
+
+      if (file.type.startsWith('image/')) {
+        setPreview(result)
+      } else {
+        setPreview(null)
+      }
+    }
+
+    reader.readAsDataURL(file)
   }
 
-  async function carregarHistorico() {
-    const { data, count } = await supabase
-      .from('contents').select('*, clients(nome)', { count: 'exact' })
-      .order('created_at', { ascending: false }).limit(20)
-    if (data) { setHistorico(data); setTotalGerados(count ?? data.length) }
+  function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const items = Array.from(e.clipboardData.items)
+
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile()
+
+        if (file) {
+          e.preventDefault()
+          handleArquivo(file)
+        }
+
+        break
+      }
+    }
   }
 
-  async function carregarEventos() {
-    setCarregandoEventos(true)
+  function removerArquivo() {
+    setArquivo(null)
+    setPreview(null)
+
+    if (fileRef.current) {
+      fileRef.current.value = ''
+    }
+  }
+
+  async function criarConversa() {
+    const titulo = input.trim().slice(0, 50) || 'Nova conversa'
+
+    const res = await fetch('/api/chat/conversations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cliente_id: clienteSelecionado?.id,
+        titulo
+      })
+    })
+
+    const data = await res.json()
+
+    if (data.id) {
+      setConversationId(data.id)
+      return data.id
+    }
+
+    return null
+  }
+
+  function montarUserContent() {
+    const content: any[] = []
+
+    if (arquivo) {
+      if (arquivo.type.startsWith('image/')) {
+        content.push({
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: arquivo.type,
+            data: arquivo.base64
+          }
+        })
+      }
+
+      if (arquivo.type === 'application/pdf') {
+        content.push({
+          type: 'document',
+          source: {
+            type: 'base64',
+            media_type: 'application/pdf',
+            data: arquivo.base64
+          }
+        })
+      }
+    }
+
+    if (input.trim()) {
+      content.push({
+        type: 'text',
+        text: input.trim()
+      })
+    } else if (arquivo?.type.startsWith('image/')) {
+      content.push({
+        type: 'text',
+        text: 'Analise esta imagem.'
+      })
+    } else if (arquivo?.type === 'application/pdf') {
+      content.push({
+        type: 'text',
+        text: 'Leia e resuma este documento.'
+      })
+    }
+
+    return content
+  }
+
+  function textoDaMensagem(content: string | any[]) {
+    if (typeof content === 'string') return content
+
+    if (Array.isArray(content)) {
+      return content.find((item: any) => item.type === 'text')?.text || ''
+    }
+
+    return ''
+  }
+
+  async function enviar() {
+    if ((!input.trim() && !arquivo) || loading) return
+
+    const userContent = montarUserContent()
+
+    const userMsg: Message = {
+      role: 'user',
+      content: userContent,
+      preview: preview || undefined,
+      fileName: arquivo?.name
+    }
+
+    const newMessages = [...messages, userMsg]
+
+    setMessages([
+      ...newMessages,
+      {
+        role: 'assistant',
+        content: ''
+      }
+    ])
+
+    setInput('')
+    setArquivo(null)
+    setPreview(null)
+    setLoading(true)
+
+    if (fileRef.current) {
+      fileRef.current.value = ''
+    }
+
+    let convId = conversationId
+
+    if (!convId) {
+      convId = await criarConversa()
+    }
+
     try {
-      const res = await fetch('/api/agenda')
-      const data = await res.json()
-      if (data.success) setEventos(data.eventos || [])
-    } catch {}
-    finally { setCarregandoEventos(false) }
-  }
-
-  async function salvarEvento() {
-    if (!novoEvento.titulo || !novoEvento.data) return
-    setSalvandoEvento(true)
-    try {
-      const res = await fetch('/api/agenda', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texto: `${novoEvento.titulo} dia ${novoEvento.data} às ${novoEvento.hora} em ${novoEvento.local} tipo ${novoEvento.tipo}` })
+        body: JSON.stringify({
+          messages: newMessages.map(m => ({
+            role: m.role,
+            content: m.content
+          })),
+          conversation_id: convId,
+          cliente: clienteSelecionado
+        })
       })
-      const data = await res.json()
-      if (data.success) {
-        setModalEvento(false)
-        setNovoEvento({ titulo: '', data: '', hora: '', local: '', tipo: 'Reunião' })
-        carregarEventos()
+
+      if (!response.ok || !response.body) {
+        throw new Error('Erro ao gerar resposta.')
       }
-    } catch {}
-    finally { setSalvandoEvento(false) }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+
+      let result = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+
+        if (done) break
+
+        const chunk = decoder.decode(value)
+        result += chunk
+
+        setMessages(prev => {
+          const last = prev[prev.length - 1]
+
+          if (last?.role === 'assistant') {
+            return [
+              ...prev.slice(0, -1),
+              {
+                ...last,
+                content: result
+              }
+            ]
+          }
+
+          return prev
+        })
+      }
+    } catch (error: any) {
+      setMessages(prev => [
+        ...prev.slice(0, -1),
+        {
+          role: 'assistant',
+          content: `Erro: ${error.message || 'não foi possível responder agora.'}`
+        }
+      ])
+    }
+
+    setLoading(false)
   }
 
-  async function gerar() {
-    if (!clienteId || !tema) return
-    setLoading(true); setResultado(null)
-    try {
-      const res = await fetch('/api/generate', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ client_id: clienteId, tema })
-      })
-      const data = await res.json()
-      if (data.success) { setResultado(data); carregarHistorico() }
-    } catch (e) { console.error(e) }
-    finally { setLoading(false) }
-  }
+  const modos = [
+    {
+      icon: '💬',
+      title: 'Conversar',
+      desc: 'Tire dúvidas e crie textos',
+      prompt: ''
+    },
+    {
+      icon: '📰',
+      title: 'Matéria jornalística',
+      desc: 'Texto profissional de notícia',
+      prompt: 'Escreva uma matéria jornalística sobre: '
+    },
+    {
+      icon: '🔗',
+      title: 'Ler link',
+      desc: 'Resumo de notícia ou página',
+      prompt: 'Leia este link e transforme em matéria jornalística: '
+    },
+    {
+      icon: '📸',
+      title: 'Analisar imagem',
+      desc: 'Envie ou cole uma foto',
+      prompt: 'Analise esta imagem de forma profissional.'
+    },
+    {
+      icon: '📄',
+      title: 'Ler PDF',
+      desc: 'Resumo de documento',
+      prompt: 'Leia e resuma este documento.'
+    },
+    {
+      icon: '📱',
+      title: 'Post Instagram',
+      desc: 'Legenda e hashtags',
+      prompt: 'Crie uma legenda para Instagram sobre: '
+    }
+  ]
 
-  function copiar(texto: string, campo: string) {
-    navigator.clipboard.writeText(texto)
-    setCopiado(campo); setTimeout(() => setCopiado(''), 2000)
-  }
-
-  const totalEntradas = transacoes.filter(t => t.tipo === 'entrada').reduce((a, b) => a + b.valor, 0)
-  const totalSaidas = transacoes.filter(t => t.tipo === 'saida').reduce((a, b) => a + b.valor, 0)
-  const saldo = totalEntradas - totalSaidas
-
- 
-   const nav = [
-  { id: 'dashboard', icon: '📊', label: 'Dashboard' },
-  { id: 'gerar', icon: '⚡', label: 'Gerar Conteúdo' },
-  { id: 'midia', icon: '🎯', label: 'Mídia', href: '/midia' },
-  { id: 'historico', icon: '📋', label: 'Histórico' },
-  { id: 'clientes', icon: '👥', label: 'Clientes' },
-  { id: 'financeiro', icon: '💰', label: 'Financeiro' },
-  { id: 'agenda', icon: '📅', label: 'Agenda' },
-]
-  
-
-  const tipoEvento: Record<string, string> = {
-    transmissao: AMARELO, Transmissão: AMARELO,
-    gravacao: '#22c55e', Gravação: '#22c55e',
-    reuniao: AZUL_CLARO, Reunião: AZUL_CLARO,
-    entrega: '#a855f7', Entrega: '#a855f7',
-    cobertura: '#ef4444', Cobertura: '#ef4444',
-  }
+  const menu = [
+    { icon: '💬', label: 'Chat' },
+    { icon: '📊', label: 'Dashboard' },
+    { icon: '✨', label: 'Gerar' },
+    { icon: '🎬', label: 'Mídia' },
+    { icon: '👥', label: 'Clientes' },
+    { icon: '📅', label: 'Agenda' },
+    { icon: '💰', label: 'Financeiro' },
+    { icon: '🗂️', label: 'Histórico' },
+    { icon: '📌', label: 'Kanban' },
+    { icon: '📝', label: 'Notas' }
+  ]
 
   return (
-    <main style={{ minHeight: '100vh', background: FUNDO, color: '#e8eaf6', fontFamily: "'Sora', 'Segoe UI', sans-serif", display: 'flex' }}>
+    <div className="appShell">
+      <style>{`
+        * {
+          box-sizing: border-box;
+        }
 
-      {/* Sidebar */}
-      <aside style={{ width: 240, background: AZUL, display: 'flex', flexDirection: 'column', position: 'fixed', height: '100vh', zIndex: 20, boxShadow: '4px 0 24px #00000044' }}>
-        <div style={{ padding: '24px 20px', borderBottom: '1px solid #ffffff22' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 12, background: AMARELO, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, boxShadow: `0 0 20px ${AMARELO}66` }}>📡</div>
+        body {
+          margin: 0;
+          background: #0B1220;
+        }
+
+        .appShell {
+          height: 100vh;
+          width: 100%;
+          display: flex;
+          overflow: hidden;
+          background:
+            radial-gradient(circle at top right, rgba(14,165,233,.16), transparent 34%),
+            linear-gradient(135deg, #08111F 0%, #0B1220 45%, #111827 100%);
+          color: #E5E7EB;
+          font-family: Inter, Montserrat, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        .sidebar {
+          width: 250px;
+          background: rgba(15, 23, 42, .92);
+          border-right: 1px solid rgba(255,255,255,.08);
+          display: flex;
+          flex-direction: column;
+          backdrop-filter: blur(16px);
+          flex-shrink: 0;
+        }
+
+        .brand {
+          padding: 22px 18px 18px;
+          border-bottom: 1px solid rgba(255,255,255,.08);
+        }
+
+        .brandTitle {
+          font-size: 17px;
+          font-weight: 900;
+          color: #F59E0B;
+          letter-spacing: -.02em;
+        }
+
+        .brandSub {
+          margin-top: 4px;
+          font-size: 11px;
+          color: #64748B;
+        }
+
+        .sidebarContent {
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+          overflow: auto;
+        }
+
+        .sideLabel {
+          color: #475569;
+          font-size: 10px;
+          letter-spacing: .16em;
+          text-transform: uppercase;
+          font-weight: 800;
+          margin-bottom: 8px;
+        }
+
+        .clientSelect {
+          width: 100%;
+          background: #111827;
+          color: #E5E7EB;
+          border: 1px solid rgba(255,255,255,.10);
+          border-radius: 12px;
+          padding: 11px 12px;
+          outline: none;
+          font-size: 12px;
+        }
+
+        .newButton {
+          width: 100%;
+          border: 1px solid rgba(245,158,11,.34);
+          background: linear-gradient(135deg, rgba(245,158,11,.18), rgba(245,158,11,.06));
+          color: #FBBF24;
+          border-radius: 14px;
+          padding: 12px 14px;
+          font-size: 12px;
+          font-weight: 900;
+          cursor: pointer;
+          transition: all .2s ease;
+        }
+
+        .newButton:hover {
+          transform: translateY(-1px);
+          background: rgba(245,158,11,.22);
+        }
+
+        .menuList {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          margin-top: 4px;
+        }
+
+        .menuItem {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 11px 12px;
+          border-radius: 12px;
+          color: #94A3B8;
+          font-size: 13px;
+          cursor: pointer;
+          transition: all .18s ease;
+          border: 1px solid transparent;
+        }
+
+        .menuItem.active {
+          background: #1F2937;
+          color: #F8FAFC;
+          border-color: rgba(255,255,255,.08);
+          box-shadow: inset 3px 0 0 #F59E0B;
+        }
+
+        .menuItem:hover {
+          background: rgba(255,255,255,.05);
+          color: #F8FAFC;
+        }
+
+        .main {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+        }
+
+        .topbar {
+          height: 64px;
+          padding: 0 22px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          border-bottom: 1px solid rgba(255,255,255,.07);
+          background: rgba(8, 17, 31, .72);
+          backdrop-filter: blur(18px);
+        }
+
+        .status {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          color: #94A3B8;
+          font-size: 13px;
+        }
+
+        .dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #10B981;
+          box-shadow: 0 0 18px rgba(16,185,129,.8);
+        }
+
+        .topActions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .clientBadge {
+          background: rgba(245,158,11,.12);
+          color: #FBBF24;
+          border: 1px solid rgba(245,158,11,.25);
+          border-radius: 999px;
+          padding: 7px 11px;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .messagesArea {
+          flex: 1;
+          overflow-y: auto;
+          padding: 28px 24px 18px;
+        }
+
+        .chatWrap {
+          width: 100%;
+          max-width: 920px;
+          margin: 0 auto;
+          min-height: 100%;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .emptyState {
+          margin: auto;
+          width: 100%;
+          max-width: 720px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          padding: 30px 0 80px;
+        }
+
+        .heroIcon {
+          width: 72px;
+          height: 72px;
+          border-radius: 24px;
+          background: linear-gradient(135deg, #F59E0B, #F97316);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 34px;
+          box-shadow: 0 20px 60px rgba(245,158,11,.25);
+          margin-bottom: 20px;
+        }
+
+        .heroTitle {
+          font-size: 32px;
+          font-weight: 950;
+          letter-spacing: -.04em;
+          color: #F8FAFC;
+        }
+
+        .heroText {
+          color: #94A3B8;
+          font-size: 15px;
+          line-height: 1.6;
+          max-width: 560px;
+          margin-top: 10px;
+        }
+
+        .modeGrid {
+          margin-top: 30px;
+          width: 100%;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 12px;
+        }
+
+        .modeCard {
+          text-align: left;
+          border: 1px solid rgba(255,255,255,.08);
+          background: rgba(31, 41, 55, .72);
+          color: #E5E7EB;
+          border-radius: 18px;
+          padding: 18px;
+          cursor: pointer;
+          transition: all .2s ease;
+          min-height: 122px;
+          box-shadow: 0 18px 50px rgba(0,0,0,.18);
+        }
+
+        .modeCard:hover {
+          transform: translateY(-3px);
+          border-color: rgba(245,158,11,.35);
+          background: rgba(31, 41, 55, .95);
+        }
+
+        .modeIcon {
+          font-size: 24px;
+          margin-bottom: 12px;
+        }
+
+        .modeTitle {
+          font-size: 14px;
+          font-weight: 900;
+          color: #F8FAFC;
+        }
+
+        .modeDesc {
+          margin-top: 5px;
+          font-size: 12px;
+          color: #94A3B8;
+          line-height: 1.4;
+        }
+
+        .messageRow {
+          display: flex;
+          gap: 12px;
+          margin-bottom: 22px;
+          animation: fadeUp .18s ease;
+        }
+
+        .messageRow.user {
+          justify-content: flex-end;
+        }
+
+        .avatar {
+          width: 34px;
+          height: 34px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #1D4ED8, #F59E0B);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 13px;
+          font-weight: 900;
+          flex-shrink: 0;
+          box-shadow: 0 10px 25px rgba(0,0,0,.25);
+        }
+
+        .bubble {
+          max-width: min(760px, 78%);
+          border-radius: 18px;
+          padding: 16px 18px;
+          font-size: 14px;
+          line-height: 1.8;
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
+
+        .bubble.user {
+          background: linear-gradient(135deg, #2563EB, #1D4ED8);
+          color: #FFFFFF;
+          border-bottom-right-radius: 6px;
+          box-shadow: 0 14px 35px rgba(37,99,235,.22);
+        }
+
+        .bubble.assistant {
+          background: rgba(31, 41, 55, .88);
+          color: #E5E7EB;
+          border: 1px solid rgba(255,255,255,.08);
+          border-bottom-left-radius: 6px;
+          box-shadow: 0 16px 50px rgba(0,0,0,.22);
+        }
+
+        .attachedImage {
+          width: 100%;
+          max-width: 340px;
+          border-radius: 14px;
+          margin-bottom: 10px;
+          border: 1px solid rgba(255,255,255,.10);
+          display: block;
+        }
+
+        .fileBox {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          border-radius: 12px;
+          background: rgba(255,255,255,.06);
+          margin-bottom: 10px;
+          color: #CBD5E1;
+          font-size: 12px;
+        }
+
+        .copyButton {
+          margin-top: 12px;
+          padding: 7px 11px;
+          border-radius: 10px;
+          border: 1px solid rgba(255,255,255,.10);
+          background: rgba(255,255,255,.04);
+          color: #94A3B8;
+          cursor: pointer;
+          font-size: 12px;
+          transition: all .2s ease;
+        }
+
+        .copyButton:hover {
+          color: #F8FAFC;
+          background: rgba(255,255,255,.08);
+        }
+
+        .typing {
+          display: inline-flex;
+          gap: 4px;
+          align-items: center;
+          color: #94A3B8;
+        }
+
+        .typing span {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #94A3B8;
+          animation: pulse 1s infinite ease-in-out;
+        }
+
+        .typing span:nth-child(2) {
+          animation-delay: .15s;
+        }
+
+        .typing span:nth-child(3) {
+          animation-delay: .3s;
+        }
+
+        .inputArea {
+          padding: 16px 24px 22px;
+          border-top: 1px solid rgba(255,255,255,.07);
+          background: rgba(8,17,31,.74);
+          backdrop-filter: blur(18px);
+        }
+
+        .inputWrap {
+          width: 100%;
+          max-width: 920px;
+          margin: 0 auto;
+        }
+
+        .previewBox {
+          margin-bottom: 10px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          background: rgba(31,41,55,.9);
+          border: 1px solid rgba(255,255,255,.08);
+          border-radius: 16px;
+          padding: 10px 12px;
+        }
+
+        .previewImg {
+          width: 52px;
+          height: 52px;
+          border-radius: 12px;
+          object-fit: cover;
+        }
+
+        .previewName {
+          flex: 1;
+          color: #CBD5E1;
+          font-size: 13px;
+        }
+
+        .removeButton {
+          border: none;
+          background: rgba(239,68,68,.16);
+          color: #FCA5A5;
+          border-radius: 10px;
+          padding: 7px 11px;
+          cursor: pointer;
+        }
+
+        .composer {
+          display: flex;
+          align-items: flex-end;
+          gap: 10px;
+          background: rgba(31,41,55,.96);
+          border: 1px solid rgba(255,255,255,.10);
+          border-radius: 24px;
+          padding: 12px 14px;
+          box-shadow: 0 20px 70px rgba(0,0,0,.28);
+        }
+
+        .attachButton {
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          border: 1px solid rgba(255,255,255,.08);
+          background: rgba(255,255,255,.04);
+          color: #94A3B8;
+          cursor: pointer;
+          font-size: 18px;
+          transition: all .2s ease;
+          flex-shrink: 0;
+        }
+
+        .attachButton:hover {
+          color: #F8FAFC;
+          background: rgba(255,255,255,.08);
+        }
+
+        .textarea {
+          flex: 1;
+          min-height: 38px;
+          max-height: 160px;
+          background: transparent;
+          border: none;
+          outline: none;
+          resize: none;
+          color: #F8FAFC;
+          font-size: 14px;
+          line-height: 1.6;
+          font-family: inherit;
+          padding: 7px 0;
+        }
+
+        .textarea::placeholder {
+          color: #64748B;
+        }
+
+        .sendButton {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          border: none;
+          background: linear-gradient(135deg, #F59E0B, #F97316);
+          color: #111827;
+          font-size: 17px;
+          font-weight: 950;
+          cursor: pointer;
+          transition: all .2s ease;
+          flex-shrink: 0;
+          box-shadow: 0 10px 26px rgba(245,158,11,.24);
+        }
+
+        .sendButton:disabled {
+          cursor: not-allowed;
+          background: rgba(255,255,255,.08);
+          color: #475569;
+          box-shadow: none;
+        }
+
+        .sendButton:not(:disabled):hover {
+          transform: translateY(-1px) scale(1.03);
+        }
+
+        .hint {
+          margin-top: 9px;
+          text-align: center;
+          color: #475569;
+          font-size: 11px;
+        }
+
+        @keyframes fadeUp {
+          from {
+            opacity: 0;
+            transform: translateY(6px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes pulse {
+          0%, 80%, 100% {
+            opacity: .3;
+            transform: translateY(0);
+          }
+          40% {
+            opacity: 1;
+            transform: translateY(-3px);
+          }
+        }
+
+        ::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+          background: rgba(148,163,184,.25);
+          border-radius: 999px;
+        }
+
+        @media (max-width: 900px) {
+          .sidebar {
+            display: none;
+          }
+
+          .modeGrid {
+            grid-template-columns: 1fr 1fr;
+          }
+
+          .bubble {
+            max-width: 88%;
+          }
+        }
+
+        @media (max-width: 620px) {
+          .modeGrid {
+            grid-template-columns: 1fr;
+          }
+
+          .heroTitle {
+            font-size: 25px;
+          }
+
+          .messagesArea {
+            padding: 20px 14px;
+          }
+
+          .inputArea {
+            padding: 12px;
+          }
+
+          .bubble {
+            max-width: 92%;
+          }
+        }
+      `}</style>
+
+      {sidebarAberta && (
+        <aside className="sidebar">
+          <div className="brand">
+            <div className="brandTitle">Super Agente</div>
+            <div className="brandSub">TV Sertão Livre</div>
+          </div>
+
+          <div className="sidebarContent">
             <div>
-              <div style={{ fontWeight: 900, fontSize: 13, letterSpacing: '-0.3px', color: '#fff' }}>TV Sertão Livre</div>
-              <div style={{ fontSize: 10, color: '#ffffff66', letterSpacing: '0.8px', textTransform: 'uppercase' }}>Super Agente IA</div>
-            </div>
-          </div>
-        </div>
-        <nav style={{ padding: '16px 12px', flex: 1 }}>
-          {nav.map(item => (
-  item.href ? (
-    <a key={item.id} href={item.href}
-      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderRadius: 12, marginBottom: 4, cursor: 'pointer', background: 'transparent', color: '#ffffff88', fontSize: 13, fontWeight: 400, textDecoration: 'none', transition: 'all 0.2s' }}
-      onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#ffffff11'; (e.currentTarget as HTMLAnchorElement).style.color = '#fff' }}
-      onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#ffffff88' }}>
-      <span style={{ fontSize: 16 }}>{item.icon}</span>{item.label}
-    </a>
-  ) : (
-    <div key={item.id} onClick={() => setPagina(item.id)}
-      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderRadius: 12, marginBottom: 4, cursor: 'pointer', background: pagina === item.id ? AMARELO : 'transparent', color: pagina === item.id ? '#1a1a1a' : '#ffffff88', fontSize: 13, fontWeight: pagina === item.id ? 700 : 400, transition: 'all 0.2s', boxShadow: pagina === item.id ? `0 4px 16px ${AMARELO}44` : 'none' }}>
-      <span style={{ fontSize: 16 }}>{item.icon}</span>{item.label}
-    </div>
-  )
-))}
-        </nav>
-        <div style={{ padding: '16px', borderTop: '1px solid #ffffff22' }}>
-          <div style={{ background: '#ffffff11', borderRadius: 14, padding: '14px 16px' }}>
-            <div style={{ fontSize: 10, color: '#ffffff55', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Posts gerados</div>
-            <div style={{ fontSize: 32, fontWeight: 900, color: AMARELO }}>{totalGerados}</div>
-            <div style={{ fontSize: 11, color: '#ffffff44' }}>total no sistema</div>
-          </div>
-        </div>
-      </aside>
-
-      {/* Content */}
-      <div style={{ marginLeft: 240, flex: 1, padding: '28px 32px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.5px', margin: 0, color: '#fff' }}>
-              {nav.find(n => n.id === pagina)?.icon} {nav.find(n => n.id === pagina)?.label}
-            </h1>
-            <p style={{ color: '#ffffff44', fontSize: 12, margin: '4px 0 0' }}>TV Sertão Livre · Ourolândia, BA</p>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#162040', border: `1px solid ${AZUL}66`, borderRadius: 20, padding: '8px 16px' }}>
-            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e' }}></div>
-            <span style={{ fontSize: 11, color: '#22c55e', fontWeight: 700 }}>Sistema online</span>
-          </div>
-        </div>
-
-        {/* DASHBOARD */}
-        {pagina === 'dashboard' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
-              {[
-                { label: 'Receita Mensal', valor: `R$ ${totalEntradas.toLocaleString('pt-BR')}`, icon: '💰', cor: '#22c55e' },
-                { label: 'Despesas', valor: `R$ ${totalSaidas.toLocaleString('pt-BR')}`, icon: '📉', cor: '#ef4444' },
-                { label: 'Saldo', valor: `R$ ${saldo.toLocaleString('pt-BR')}`, icon: '🏦', cor: AMARELO },
-                { label: 'Posts Gerados', valor: totalGerados.toString(), icon: '⚡', cor: AZUL_CLARO },
-              ].map(k => (
-                <div key={k.label} style={{ background: CARD, border: `1px solid ${BORDA}`, borderRadius: 16, padding: '20px 22px' }}>
-                  <div style={{ fontSize: 24, marginBottom: 8 }}>{k.icon}</div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: k.cor }}>{k.valor}</div>
-                  <div style={{ fontSize: 11, color: '#ffffff44', marginTop: 4 }}>{k.label}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ background: CARD, border: `1px solid ${BORDA}`, borderRadius: 16, padding: 24 }}>
-              <div style={{ fontSize: 12, color: AMARELO, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 16 }}>📅 Próximos Eventos</div>
-              {carregandoEventos ? (
-                <div style={{ color: '#ffffff33', fontSize: 13, padding: 8 }}>Carregando...</div>
-              ) : eventos.length === 0 ? (
-                <div style={{ color: '#ffffff33', fontSize: 13, padding: 8 }}>Nenhum evento cadastrado.</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {eventos.slice(0, 3).map(e => (
-                    <div key={e.id} style={{ background: CARD2, border: `1px solid ${BORDA}`, borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 4, height: 40, borderRadius: 4, background: tipoEvento[e.tipo] ?? AZUL_CLARO }}></div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#e8eaf6' }}>{e.titulo}</div>
-                        <div style={{ fontSize: 11, color: '#ffffff44' }}>{e.data ? new Date(e.data + 'T00:00:00').toLocaleDateString('pt-BR') : '—'} · {e.hora || '—'} · {e.local || '—'}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* GERAR */}
-        {pagina === 'gerar' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: 20 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <div style={{ background: CARD, border: `1px solid ${BORDA}`, borderRadius: 20, padding: 28 }}>
-                <div style={{ fontSize: 10, color: AMARELO, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: 22 }}>⚡ Nova geração</div>
-                <div style={{ marginBottom: 18 }}>
-                  <label style={{ fontSize: 10, color: '#ffffff44', letterSpacing: '0.8px', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Cliente</label>
-                  <select value={clienteId} onChange={e => { setClienteId(e.target.value); setClienteNome(clientes.find(c => c.id === e.target.value)?.nome ?? '') }}
-                    style={{ width: '100%', background: CARD2, border: `1px solid ${BORDA}`, borderRadius: 12, color: clienteId ? '#e8eaf6' : '#ffffff33', padding: '12px 14px', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
-                    <option value="">Selecione um cliente...</option>
-                    {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                  </select>
-                </div>
-                <div style={{ marginBottom: 22 }}>
-                  <label style={{ fontSize: 10, color: '#ffffff44', letterSpacing: '0.8px', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Tema do Post</label>
-                  <input type="text" value={tema} onChange={e => setTema(e.target.value)} onKeyDown={e => e.key === 'Enter' && gerar()}
-                    placeholder="Ex: São João, show de forró, promoção..."
-                    style={{ width: '100%', background: CARD2, border: `1px solid ${BORDA}`, borderRadius: 12, color: '#e8eaf6', padding: '12px 14px', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
-                </div>
-                <button onClick={gerar} disabled={loading || !clienteId || !tema}
-                  style={{ width: '100%', background: loading || !clienteId || !tema ? CARD2 : `linear-gradient(135deg, ${AZUL_MEDIO}, ${AZUL_CLARO})`, border: `1px solid ${loading || !clienteId || !tema ? BORDA : AZUL_CLARO}`, borderRadius: 12, color: loading || !clienteId || !tema ? '#ffffff33' : '#fff', padding: '14px', fontSize: 13, fontWeight: 700, cursor: loading || !clienteId || !tema ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.3s' }}>
-                  {loading ? <><span style={{ animation: 'spin 0.8s linear infinite', display: 'inline-block' }}>◌</span>Gerando...</> : '⚡ Gerar Conteúdo'}
-                </button>
-                {clienteNome && <div style={{ marginTop: 14, background: `${AMARELO}11`, border: `1px solid ${AMARELO}33`, borderRadius: 10, padding: '9px 12px', fontSize: 11, color: AMARELO }}>🎯 Cliente: <strong>{clienteNome}</strong></div>}
-              </div>
-              <div style={{ background: CARD, border: `1px solid #25d36633`, borderRadius: 16, padding: 20 }}>
-                <div style={{ fontSize: 11, color: '#25d366', fontWeight: 700, marginBottom: 8 }}>📱 Via WhatsApp</div>
-                <p style={{ fontSize: 12, color: '#ffffff55', margin: 0, lineHeight: 1.6 }}>
-                  Mande áudio ou texto para o Lumi:<br />
-                  <span style={{ color: '#25d366', fontWeight: 600 }}>"GERAR: tema do post"</span>
-                </p>
-              </div>
-            </div>
-            <div style={{ background: CARD, border: `1px solid ${resultado ? `${AMARELO}44` : BORDA}`, borderRadius: 20, padding: 28, transition: 'border-color 0.4s' }}>
-              {!resultado ? (
-                <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, opacity: 0.3 }}>
-                  <div style={{ fontSize: 48 }}>📡</div>
-                  <div style={{ fontSize: 13, color: '#ffffff44', textAlign: 'center', lineHeight: 1.6 }}>Configure e clique em<br /><strong>Gerar Conteúdo</strong></div>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 18, animation: 'fadeIn 0.4s ease' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e' }}></div>
-                    <span style={{ fontSize: 10, color: '#22c55e', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>Conteúdo gerado</span>
-                  </div>
-                  {[
-                    { label: '📝 Legenda', campo: 'legenda', texto: resultado.legenda, cor: '#e8eaf6' },
-                    { label: '# Hashtags', campo: 'hashtags', texto: resultado.hashtags, cor: AMARELO_CLARO },
-                    { label: '🎨 Prompt de Imagem', campo: 'prompt', texto: resultado.prompt_imagem, cor: '#a78bfa' },
-                  ].map(({ label, campo, texto, cor }) => (
-                    <div key={campo}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <span style={{ fontSize: 10, color: '#ffffff33', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{label}</span>
-                        <button onClick={() => copiar(texto, campo)} style={{ background: copiado === campo ? '#22c55e22' : CARD2, border: `1px solid ${copiado === campo ? '#22c55e44' : BORDA}`, borderRadius: 6, color: copiado === campo ? '#22c55e' : '#ffffff33', padding: '4px 10px', fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>
-                          {copiado === campo ? '✓ Copiado' : 'Copiar'}
-                        </button>
-                      </div>
-                      <p style={{ background: CARD2, border: `1px solid ${BORDA}`, borderRadius: 10, padding: '12px 14px', fontSize: 12, color: cor, margin: 0, lineHeight: 1.7, maxHeight: 100, overflowY: 'auto', whiteSpace: 'pre-wrap', fontStyle: campo === 'prompt' ? 'italic' : 'normal' }}>{texto}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* HISTÓRICO */}
-        {pagina === 'historico' && (
-          <div style={{ background: CARD, border: `1px solid ${BORDA}`, borderRadius: 20, padding: 28 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <div style={{ fontSize: 12, color: AMARELO, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>📋 Todos os conteúdos</div>
-              <span style={{ fontSize: 11, color: '#ffffff33' }}>{historico.length} registros</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {historico.length === 0 && <div style={{ textAlign: 'center', color: '#ffffff33', padding: 40 }}>Nenhum conteúdo ainda.</div>}
-              {historico.map(h => (
-                <div key={h.id} style={{ background: CARD2, border: `1px solid ${BORDA}`, borderRadius: 14, padding: '16px 18px', display: 'grid', gridTemplateColumns: '160px 1fr auto', gap: 16, alignItems: 'center' }}>
-                  <div>
-                    <span style={{ background: `${AZUL}44`, border: `1px solid ${AZUL}66`, color: '#93c5fd', fontSize: 10, padding: '3px 8px', borderRadius: 20, fontWeight: 700 }}>
-                      {h.clients?.nome ?? 'Cliente'}
-                    </span>
-                    <div style={{ fontSize: 10, color: '#ffffff33', marginTop: 4 }}>
-                      {h.created_at ? new Date(h.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#e8eaf6', marginBottom: 4 }}>{h.tema}</div>
-                    <div style={{ fontSize: 11, color: '#ffffff33', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>{h.legenda}</div>
-                  </div>
-                  <button onClick={() => copiar(h.legenda + '\n\n' + h.hashtags, h.id)} style={{ background: AZUL, border: 'none', borderRadius: 8, color: '#fff', padding: '8px 14px', fontSize: 11, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                    {copiado === h.id ? '✓ Copiado' : 'Copiar tudo'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-      {/* CLIENTES */}
-{pagina === 'clientes' && (
-  <ClientesPage />
-)}
-        {/* FINANCEIRO */}
-        {pagina === 'financeiro' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-              {[
-                { label: 'Total Entradas', valor: `R$ ${totalEntradas.toLocaleString('pt-BR')}`, cor: '#22c55e', icon: '📈' },
-                { label: 'Total Saídas', valor: `R$ ${totalSaidas.toLocaleString('pt-BR')}`, cor: '#ef4444', icon: '📉' },
-                { label: 'Saldo do Mês', valor: `R$ ${saldo.toLocaleString('pt-BR')}`, cor: AMARELO, icon: '🏦' },
-              ].map(k => (
-                <div key={k.label} style={{ background: CARD, border: `1px solid ${BORDA}`, borderRadius: 16, padding: '22px 24px' }}>
-                  <div style={{ fontSize: 24, marginBottom: 8 }}>{k.icon}</div>
-                  <div style={{ fontSize: 26, fontWeight: 900, color: k.cor }}>{k.valor}</div>
-                  <div style={{ fontSize: 11, color: '#ffffff44', marginTop: 4 }}>{k.label}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ background: CARD, border: `1px solid ${BORDA}`, borderRadius: 20, padding: 28 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <div style={{ fontSize: 12, color: AMARELO, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>💰 Transações — Abril 2026</div>
-                <button style={{ background: AMARELO, border: 'none', borderRadius: 10, color: '#1a1a1a', padding: '8px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ Nova</button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {transacoes.map(t => (
-                  <div key={t.id} style={{ background: CARD2, border: `1px solid ${BORDA}`, borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: t.tipo === 'entrada' ? '#22c55e22' : '#ef444422', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
-                      {t.tipo === 'entrada' ? '↑' : '↓'}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#e8eaf6' }}>{t.descricao}</div>
-                      <div style={{ fontSize: 11, color: '#ffffff33' }}>{new Date(t.data).toLocaleDateString('pt-BR')} · {t.categoria}</div>
-                    </div>
-                    <div style={{ fontSize: 16, fontWeight: 900, color: t.tipo === 'entrada' ? '#22c55e' : '#ef4444' }}>
-                      {t.tipo === 'entrada' ? '+' : '-'} R$ {t.valor.toLocaleString('pt-BR')}
-                    </div>
-                  </div>
+              <div className="sideLabel">Cliente ativo</div>
+              <select
+                className="clientSelect"
+                value={clienteSelecionado?.id || ''}
+                onChange={e => setClienteSelecionado(clientes.find(c => c.id === e.target.value) || null)}
+              >
+                <option value="">Sem cliente</option>
+                {clientes.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.nome}
+                  </option>
                 ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* AGENDA */}
-        {pagina === 'agenda' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ background: CARD, border: `1px solid ${BORDA}`, borderRadius: 20, padding: 28 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <div style={{ fontSize: 12, color: AMARELO, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>📅 Agenda — Abril/Junho 2026</div>
-                <button onClick={() => setModalEvento(true)} style={{ background: AMARELO, border: 'none', borderRadius: 10, color: '#1a1a1a', padding: '8px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ Novo Evento</button>
-              </div>
-
-              <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
-                {[
-                  { label: 'Transmissão', cor: AMARELO },
-                  { label: 'Gravação', cor: '#22c55e' },
-                  { label: 'Reunião', cor: AZUL_CLARO },
-                  { label: 'Entrega', cor: '#a855f7' },
-                  { label: 'Cobertura', cor: '#ef4444' },
-                ].map(l => (
-                  <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#ffffff55' }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: l.cor }}></div>
-                    {l.label}
-                  </div>
-                ))}
-              </div>
-
-              {carregandoEventos ? (
-                <div style={{ textAlign: 'center', color: '#ffffff33', padding: 40, fontSize: 13 }}>⏳ Carregando eventos...</div>
-              ) : eventos.length === 0 ? (
-                <div style={{ textAlign: 'center', color: '#ffffff33', padding: 40, fontSize: 13 }}>
-                  Nenhum evento cadastrado ainda.<br />
-                  <span style={{ fontSize: 12 }}>Use o WhatsApp: <strong style={{ color: '#25d366' }}>"AGENDA: evento dia XX/XX às XXh"</strong></span>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {eventos.map(e => (
-                    <div key={e.id} style={{ background: CARD2, border: `1px solid ${BORDA}`, borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
-                      <div style={{ width: 4, height: 50, borderRadius: 4, background: tipoEvento[e.tipo] ?? AZUL_CLARO, flexShrink: 0 }}></div>
-                      <div style={{ width: 52, height: 52, borderRadius: 12, background: AZUL, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <div style={{ fontSize: 16, fontWeight: 900, color: AMARELO, lineHeight: 1 }}>
-                          {e.data ? new Date(e.data + 'T00:00:00').getDate() : '—'}
-                        </div>
-                        <div style={{ fontSize: 9, color: '#ffffff66', textTransform: 'uppercase' }}>
-                          {e.data ? new Date(e.data + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'short' }) : ''}
-                        </div>
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#e8eaf6', marginBottom: 4 }}>{e.titulo}</div>
-                        <div style={{ fontSize: 11, color: '#ffffff44' }}>🕐 {e.hora || '—'} · 📍 {e.local || '—'} · {e.tipo}</div>
-                      </div>
-                      <button style={{ background: `${tipoEvento[e.tipo] ?? AZUL_CLARO}22`, border: `1px solid ${tipoEvento[e.tipo] ?? AZUL_CLARO}44`, borderRadius: 8, color: tipoEvento[e.tipo] ?? AZUL_CLARO, padding: '6px 12px', fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>
-                        📱 Lembrete
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div style={{ marginTop: 20, background: `${AZUL}22`, border: `1px solid ${AZUL}44`, borderRadius: 12, padding: '14px 18px', fontSize: 12, color: '#93c5fd' }}>
-                💡 Via WhatsApp: <strong>"AGENDA: Reunião com cliente dia 20/04 às 14h em Ourolândia"</strong>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Modal Novo Evento */}
-      {modalEvento && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: CARD, border: `1px solid ${BORDA}`, borderRadius: 20, padding: 32, width: 440 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: AMARELO, marginBottom: 24 }}>📅 Novo Evento</div>
-            {[
-              { label: 'Título', key: 'titulo', placeholder: 'Ex: Reunião Prefeitura', type: 'text' },
-              { label: 'Data', key: 'data', placeholder: '', type: 'date' },
-              { label: 'Hora', key: 'hora', placeholder: '', type: 'time' },
-              { label: 'Local', key: 'local', placeholder: 'Ex: Ourolândia', type: 'text' },
-            ].map(f => (
-              <div key={f.key} style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 10, color: '#ffffff44', textTransform: 'uppercase', letterSpacing: '0.8px', display: 'block', marginBottom: 6 }}>{f.label}</label>
-                <input type={f.type} value={(novoEvento as any)[f.key]} onChange={e => setNovoEvento(prev => ({ ...prev, [f.key]: e.target.value }))}
-                  placeholder={f.placeholder}
-                  style={{ width: '100%', background: CARD2, border: `1px solid ${BORDA}`, borderRadius: 10, color: '#e8eaf6', padding: '10px 12px', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-            ))}
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 10, color: '#ffffff44', textTransform: 'uppercase', letterSpacing: '0.8px', display: 'block', marginBottom: 6 }}>Tipo</label>
-              <select value={novoEvento.tipo} onChange={e => setNovoEvento(prev => ({ ...prev, tipo: e.target.value }))}
-                style={{ width: '100%', background: CARD2, border: `1px solid ${BORDA}`, borderRadius: 10, color: '#e8eaf6', padding: '10px 12px', fontSize: 13, outline: 'none' }}>
-                {['Reunião', 'Transmissão', 'Gravação', 'Entrega', 'Cobertura'].map(t => <option key={t}>{t}</option>)}
               </select>
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setModalEvento(false)} style={{ flex: 1, background: CARD2, border: `1px solid ${BORDA}`, borderRadius: 10, color: '#ffffff55', padding: '12px', fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
-              <button onClick={salvarEvento} disabled={salvandoEvento || !novoEvento.titulo || !novoEvento.data}
-                style={{ flex: 2, background: salvandoEvento ? CARD2 : AMARELO, border: 'none', borderRadius: 10, color: '#1a1a1a', padding: '12px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                {salvandoEvento ? 'Salvando...' : '✅ Salvar Evento'}
-              </button>
-            </div>
+
+            <button
+              className="newButton"
+              onClick={() => {
+                setMessages([])
+                setConversationId(null)
+                setInput('')
+                removerArquivo()
+              }}
+            >
+              + Nova conversa
+            </button>
+
+            <nav className="menuList">
+              {menu.map(item => (
+                <div key={item.label} className={`menuItem ${item.label === 'Chat' ? 'active' : ''}`}>
+                  <span>{item.icon}</span>
+                  <span>{item.label}</span>
+                </div>
+              ))}
+            </nav>
           </div>
-        </div>
+        </aside>
       )}
 
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg) } }
-        @keyframes fadeIn { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
-        * { box-sizing: border-box; }
-        select option { background: #162040; }
-        input::placeholder { color: #ffffff22; }
-        ::-webkit-scrollbar { width: 3px; }
-        ::-webkit-scrollbar-thumb { background: ${AZUL}; border-radius: 4px; }
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;900&display=swap');
-      `}</style>
-    </main>
+      <main className="main">
+        <header className="topbar">
+          <div className="status">
+            {!sidebarAberta && (
+              <button className="attachButton" onClick={() => setSidebarAberta(true)}>
+                ☰
+              </button>
+            )}
+            <span className="dot" />
+            <span>Claude Sonnet</span>
+          </div>
+
+          <div className="topActions">
+            {clienteSelecionado && (
+              <div className="clientBadge">
+                {clienteSelecionado.nome}
+              </div>
+            )}
+          </div>
+        </header>
+
+        <section className="messagesArea">
+          <div className="chatWrap">
+            {messages.length === 0 && (
+              <div className="emptyState">
+                <div className="heroIcon">⚡</div>
+                <div className="heroTitle">Super Agente</div>
+                <div className="heroText">
+                  Crie matérias jornalísticas, leia links, analise imagens, resuma PDFs e produza conteúdo profissional para redes sociais.
+                </div>
+
+                <div className="modeGrid">
+                  {modos.map(modo => (
+                    <button
+                      key={modo.title}
+                      className="modeCard"
+                      onClick={() => {
+                        setInput(modo.prompt)
+
+                        if (modo.title === 'Analisar imagem' || modo.title === 'Ler PDF') {
+                          fileRef.current?.click()
+                        }
+                      }}
+                    >
+                      <div className="modeIcon">{modo.icon}</div>
+                      <div className="modeTitle">{modo.title}</div>
+                      <div className="modeDesc">{modo.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {messages.map((msg, index) => {
+              const isUser = msg.role === 'user'
+              const text = textoDaMensagem(msg.content)
+
+              return (
+                <div key={index} className={`messageRow ${isUser ? 'user' : 'assistant'}`}>
+                  {!isUser && <div className="avatar">S</div>}
+
+                  <div className={`bubble ${isUser ? 'user' : 'assistant'}`}>
+                    {msg.preview && (
+                      <img src={msg.preview} alt="Anexo" className="attachedImage" />
+                    )}
+
+                    {msg.fileName && !msg.preview && (
+                      <div className="fileBox">
+                        <span>📄</span>
+                        <span>{msg.fileName}</span>
+                      </div>
+                    )}
+
+                    {text ? (
+                      text
+                    ) : !isUser && loading ? (
+                      <span className="typing">
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                    ) : null}
+
+                    {!isUser && text && (
+                      <div>
+                        <button
+                          className="copyButton"
+                          onClick={() => navigator.clipboard.writeText(text)}
+                        >
+                          Copiar resposta
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+
+            <div ref={bottomRef} />
+          </div>
+        </section>
+
+        <footer className="inputArea">
+          <div className="inputWrap">
+            {(preview || arquivo) && (
+              <div className="previewBox">
+                {preview ? (
+                  <img src={preview} alt="Preview" className="previewImg" />
+                ) : (
+                  <span style={{ fontSize: 28 }}>📄</span>
+                )}
+
+                <span className="previewName">{arquivo?.name}</span>
+
+                <button className="removeButton" onClick={removerArquivo}>
+                  Remover
+                </button>
+              </div>
+            )}
+
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={e => e.target.files?.[0] && handleArquivo(e.target.files[0])}
+              style={{ display: 'none' }}
+            />
+
+            <div className="composer">
+              <button className="attachButton" onClick={() => fileRef.current?.click()} title="Anexar imagem ou PDF">
+                📎
+              </button>
+
+              <textarea
+                className="textarea"
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onPaste={handlePaste}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    enviar()
+                  }
+                }}
+                placeholder="Mensagem, link, ou cole uma imagem..."
+                rows={1}
+              />
+
+              <button
+                className="sendButton"
+                disabled={loading || (!input.trim() && !arquivo)}
+                onClick={enviar}
+              >
+                →
+              </button>
+            </div>
+
+            <div className="hint">
+              Enter para enviar · Shift+Enter para nova linha · Ctrl+V para colar imagem · 📎 para imagem/PDF
+            </div>
+          </div>
+        </footer>
+      </main>
+    </div>
   )
 }
