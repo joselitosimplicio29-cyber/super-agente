@@ -3,6 +3,7 @@
 import Link from "next/link"
 
 const navItems = [
+    { href: "/chat", label: "Chat", icon: "💬" },
   { href: "/",           label: "Dashboard",  icon: "⬛" },
   { href: "/gerar",      label: "Gerar",      icon: "✨" },
   { href: "/midia",      label: "Mídia",      icon: "🎬" },
