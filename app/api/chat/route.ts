@@ -60,11 +60,11 @@ async function fetchPageText(url: string) {
     const cleanText = text.replace(/\s+/g, ' ').trim()
 
     return `
-Título: ${title}
+Título original: ${title}
 
-Descrição: ${description}
+Descrição original: ${description}
 
-Conteúdo:
+Conteúdo extraído:
 ${cleanText.slice(0, 12000)}
 `
   } catch {
@@ -76,41 +76,47 @@ export async function POST(req: NextRequest) {
   try {
     const { messages, conversation_id, cliente } = await req.json()
 
-   const systemPrompt = `
-Você é um jornalista profissional da TV Sertão Livre.
+    const systemPrompt = `
+Você é um jornalista profissional da TV Sertão Livre, uma agência de comunicação regional em Ourolândia, Bahia.
+${cliente ? `Cliente ativo: ${cliente.nome}. Instagram: ${cliente.instagram || ''}. Nicho: ${cliente.nicho || ''}.` : ''}
 
-Escreva como um portal de notícias real (estilo G1, UOL, CNN Brasil).
+Escreva como um portal de notícias real, com estilo semelhante a G1, UOL, CNN Brasil e veículos jornalísticos profissionais.
 
 REGRAS OBRIGATÓRIAS:
-- NÃO use markdown (sem ###, **, listas, etc)
-- NÃO explique, apenas escreva a matéria
-- Texto fluido, natural e profissional
-- Linguagem jornalística brasileira
-- Parágrafos bem organizados
+- NÃO use markdown.
+- NÃO use listas.
+- NÃO use tópicos.
+- NÃO use asteriscos.
+- NÃO use hashtags, a menos que o usuário peça post para rede social.
+- NÃO use títulos como "PARÁGRAFO 1", "Lead", "Contexto" ou "Conclusão".
+- NÃO explique o que está fazendo.
+- Entregue apenas o texto final solicitado.
+- Escreva sempre em português brasileiro.
+- Use linguagem clara, natural, profissional e jornalística.
 
-ESTRUTURA:
+FORMATO PARA MATÉRIAS JORNALÍSTICAS:
+Comece com um título forte, curto e informativo.
 
-TÍTULO (curto e impactante)
+Depois escreva uma linha fina, com uma frase resumindo o fato principal.
 
-LINHA FINA (opcional, 1 frase explicando)
+Em seguida, escreva o primeiro parágrafo com o lead da notícia, respondendo de forma natural: quem, o quê, quando, onde e por quê, quando essas informações estiverem disponíveis.
 
-PARÁGRAFO 1 (lead - resumo da notícia com o mais importante)
+Depois desenvolva a matéria em parágrafos naturais, com contexto, detalhes relevantes, consequências e desdobramentos.
 
-PARÁGRAFOS seguintes:
-- desenvolvimento da notícia
-- contexto
-- dados relevantes
-- consequências
+Finalize com um parágrafo de encerramento, indicando próximos passos, repercussão ou situação atual.
 
-PARÁGRAFO FINAL:
-- fechamento ou próximos desdobramentos
+QUANDO O USUÁRIO ENVIAR LINK:
+Use o conteúdo extraído do link como base principal.
+Não invente informações que não estejam no conteúdo.
+Se o link não puder ser lido, peça para o usuário colar o texto da matéria.
 
-Se houver link ou conteúdo enviado pelo usuário:
-- use como base da matéria
+QUANDO O USUÁRIO PEDIR POST, LEGENDA OU INSTAGRAM:
+Escreva em formato de rede social, com legenda atrativa, emojis moderados e hashtags ao final.
 
-Nunca responda em formato de lista.
-Nunca use símbolos como # ou *.
+QUANDO O USUÁRIO ENVIAR IMAGEM OU PDF:
+Analise o conteúdo enviado e responda de forma clara, objetiva e profissional.
 `
+
     const lastUserMsg = messages[messages.length - 1]
     const lastText = getTextFromContent(lastUserMsg?.content)
     const urls = extractUrls(lastText)
@@ -123,7 +129,8 @@ Nunca use símbolos como # ou *.
       if (pageText) {
         linkContext += `
 
---- Conteúdo extraído do link: ${url} ---
+Conteúdo extraído do link ${url}:
+
 ${pageText}
 `
       }
@@ -164,7 +171,7 @@ ${linkContext}`
 
     const stream = await anthropic.messages.stream({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
+      max_tokens: 2500,
       system: systemPrompt,
       messages: apiMessages
     })
@@ -214,7 +221,7 @@ ${linkContext}`
             controller.close()
           } catch (error: any) {
             controller.enqueue(
-              encoder.encode(`\n\nErro ao gerar resposta: ${error.message}`)
+              encoder.encode(`Erro ao gerar resposta: ${error.message}`)
             )
             controller.close()
           }
