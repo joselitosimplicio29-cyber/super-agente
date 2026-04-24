@@ -5,7 +5,9 @@ import * as cheerio from 'cheerio'
 
 export const dynamic = 'force-dynamic'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY!
+})
 
 function getSupabase() {
   return createClient(
@@ -35,7 +37,9 @@ function extractUrls(text: string) {
 async function fetchPageText(url: string) {
   try {
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
+      headers: {
+        'User-Agent': 'Mozilla/5.0'
+      }
     })
 
     if (!res.ok) return ''
@@ -47,6 +51,7 @@ async function fetchPageText(url: string) {
 
     const title = $('title').text().trim()
     const description = $('meta[name="description"]').attr('content') || ''
+
     const text =
       $('article').text().trim() ||
       $('main').text().trim() ||
@@ -71,22 +76,41 @@ export async function POST(req: NextRequest) {
   try {
     const { messages, conversation_id, cliente } = await req.json()
 
-    const systemPrompt = `Você é o Super Agente da TV Sertão Livre, uma agência de comunicação regional em Ourolândia, Bahia.
-${cliente ? `Cliente ativo: ${cliente.nome}. Instagram: ${cliente.instagram || ''}. Nicho: ${cliente.nicho || ''}` : ''}
+   const systemPrompt = `
+Você é um jornalista profissional da TV Sertão Livre.
 
-Você ajuda com:
-- Criar posts, legendas e hashtags para redes sociais
-- Redigir matérias jornalísticas regionais
-- Analisar imagens e documentos PDF enviados
-- Ler links enviados pelo usuário e resumir notícias/matérias
-- Planejar conteúdo e estratégias
-- Responder dúvidas gerais
+Escreva como um portal de notícias real (estilo G1, UOL, CNN Brasil).
 
-Quando o usuário enviar um link, use o conteúdo extraído como base.
-Se não conseguir ler o link, peça para o usuário colar o texto da matéria.
+REGRAS OBRIGATÓRIAS:
+- NÃO use markdown (sem ###, **, listas, etc)
+- NÃO explique, apenas escreva a matéria
+- Texto fluido, natural e profissional
+- Linguagem jornalística brasileira
+- Parágrafos bem organizados
 
-Responda sempre em português brasileiro, de forma direta e profissional.`
+ESTRUTURA:
 
+TÍTULO (curto e impactante)
+
+LINHA FINA (opcional, 1 frase explicando)
+
+PARÁGRAFO 1 (lead - resumo da notícia com o mais importante)
+
+PARÁGRAFOS seguintes:
+- desenvolvimento da notícia
+- contexto
+- dados relevantes
+- consequências
+
+PARÁGRAFO FINAL:
+- fechamento ou próximos desdobramentos
+
+Se houver link ou conteúdo enviado pelo usuário:
+- use como base da matéria
+
+Nunca responda em formato de lista.
+Nunca use símbolos como # ou *.
+`
     const lastUserMsg = messages[messages.length - 1]
     const lastText = getTextFromContent(lastUserMsg?.content)
     const urls = extractUrls(lastText)
@@ -138,36 +162,77 @@ ${linkContext}`
       }
     })
 
-    const response = await anthropic.messages.create({
+    const stream = await anthropic.messages.stream({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 2000,
       system: systemPrompt,
       messages: apiMessages
     })
 
-    const assistantMessage =
-      response.content[0].type === 'text'
-        ? response.content[0].text
-        : ''
+    const encoder = new TextEncoder()
 
-    if (conversation_id) {
-      const supabase = getSupabase()
+    return new Response(
+      new ReadableStream({
+        async start(controller) {
+          let fullText = ''
 
-      const userContent =
-        typeof lastUserMsg.content === 'string'
-          ? lastUserMsg.content
-          : JSON.stringify(lastUserMsg.content)
+          try {
+            for await (const chunk of stream) {
+              if (chunk.type === 'content_block_delta') {
+                const delta = chunk.delta
 
-      await supabase.from('messages').insert([
-        { conversation_id, role: 'user', content: userContent },
-        { conversation_id, role: 'assistant', content: assistantMessage }
-      ])
-    }
+                if (delta.type === 'text_delta') {
+                  const text = delta.text
+                  fullText += text
+                  controller.enqueue(encoder.encode(text))
+                }
+              }
+            }
 
-    return NextResponse.json({ success: true, message: assistantMessage })
+            if (conversation_id) {
+              const supabase = getSupabase()
+
+              const userContent =
+                typeof lastUserMsg.content === 'string'
+                  ? lastUserMsg.content
+                  : JSON.stringify(lastUserMsg.content)
+
+              await supabase.from('messages').insert([
+                {
+                  conversation_id,
+                  role: 'user',
+                  content: userContent
+                },
+                {
+                  conversation_id,
+                  role: 'assistant',
+                  content: fullText
+                }
+              ])
+            }
+
+            controller.close()
+          } catch (error: any) {
+            controller.enqueue(
+              encoder.encode(`\n\nErro ao gerar resposta: ${error.message}`)
+            )
+            controller.close()
+          }
+        }
+      }),
+      {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'no-cache'
+        }
+      }
+    )
   } catch (error: any) {
     return NextResponse.json(
-      { success: false, error: error.message },
+      {
+        success: false,
+        error: error.message
+      },
       { status: 500 }
     )
   }
@@ -185,10 +250,16 @@ export async function GET() {
 
     if (error) throw error
 
-    return NextResponse.json({ success: true, conversations: data })
+    return NextResponse.json({
+      success: true,
+      conversations: data
+    })
   } catch (error: any) {
     return NextResponse.json(
-      { success: false, error: error.message },
+      {
+        success: false,
+        error: error.message
+      },
       { status: 500 }
     )
   }
