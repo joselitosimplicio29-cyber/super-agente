@@ -16,40 +16,46 @@ function getSupabase() {
 export async function POST(req: NextRequest) {
   try {
     const { messages, conversation_id, cliente } = await req.json()
-    const supabase = getSupabase()
 
     const systemPrompt = `Você é o Super Agente da TV Sertão Livre, uma agência de comunicação regional em Ourolândia, Bahia.
-
-${cliente ? `Cliente ativo: ${cliente.nome}. Instagram: ${cliente.instagram || ''}. Nicho: ${cliente.nicho || ''}.` : ''}
+${cliente ? `Cliente ativo: ${cliente.nome}. Instagram: ${cliente.instagram || ''}. Nicho: ${cliente.nicho || ''}` : ''}
 
 Você ajuda com:
 - Criar posts, legendas e hashtags para redes sociais
 - Redigir matérias jornalísticas regionais
+- Analisar imagens e documentos PDF enviados
 - Planejar conteúdo e estratégias
 - Responder dúvidas gerais
 
-Quando o usuário pedir para agendar algo, responda com JSON no formato:
-{"acao":"agenda","texto":"descrição do evento"}
+Responda sempre em português brasileiro, de forma direta e profissional.`
 
-Quando pedir para cadastrar cliente:
-{"acao":"cadastrar","dados":"informações do cliente"}
-
-Para todo o resto, responda normalmente em português brasileiro, de forma direta e profissional.`
+    // Monta mensagens para a API — aceita string ou array (imagem/PDF)
+    const apiMessages = messages.map((m: any) => ({
+      role: m.role,
+      content: m.content
+    }))
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 1500,
+      max_tokens: 2000,
       system: systemPrompt,
-      messages: messages.map((m: any) => ({ role: m.role, content: m.content }))
+      messages: apiMessages
     })
 
-    const assistantMessage = response.content[0].type === 'text' ? response.content[0].text : ''
+    const assistantMessage = response.content[0].type === 'text'
+      ? response.content[0].text
+      : ''
 
-    // Salva no Supabase se tiver conversation_id
+    // Salva no Supabase — serializa content array como JSON string
     if (conversation_id) {
+      const supabase = getSupabase()
       const lastUserMsg = messages[messages.length - 1]
+      const userContent = typeof lastUserMsg.content === 'string'
+        ? lastUserMsg.content
+        : JSON.stringify(lastUserMsg.content)
+
       await supabase.from('messages').insert([
-        { conversation_id, role: 'user', content: lastUserMsg.content },
+        { conversation_id, role: 'user', content: userContent },
         { conversation_id, role: 'assistant', content: assistantMessage }
       ])
     }
@@ -65,7 +71,7 @@ export async function GET() {
     const supabase = getSupabase()
     const { data, error } = await supabase
       .from('conversations')
-      .select('*, messages(count)')
+      .select('*')
       .order('criado_em', { ascending: false })
       .limit(20)
 
@@ -75,3 +81,4 @@ export async function GET() {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }
+
