@@ -32,7 +32,6 @@ function extractUrls(text: string) {
   return text.match(regex) || []
 }
 
-// ✅ NOVO — detecta se precisa buscar na web
 function precisaBusca(texto: string): boolean {
   const gatilhos = [
     'notícia', 'noticia', 'hoje', 'agora', 'essa semana', 'busca', 'pesquisa',
@@ -45,7 +44,6 @@ function precisaBusca(texto: string): boolean {
   return !temUrl && gatilhos.some(g => lower.includes(g))
 }
 
-// ✅ NOVO — busca no Google via Serper
 async function buscarNaWeb(query: string): Promise<string> {
   try {
     const res = await fetch('https://google.serper.dev/search', {
@@ -103,12 +101,13 @@ export async function POST(req: NextRequest) {
     const { messages, conversation_id, cliente } = await req.json()
 
     const systemPrompt = `
-Você é um jornalista profissional da TV Sertão Livre, uma agência de comunicação regional em Ourolândia, Bahia.
+Você é o Super Agente da TV Sertão Livre, uma agência de comunicação regional em Ourolândia, Bahia.
 ${cliente ? `Cliente ativo: ${cliente.nome}. Instagram: ${cliente.instagram || ''}. Nicho: ${cliente.nicho || ''}.` : ''}
 
-Escreva como um portal de notícias real, com estilo semelhante a G1, UOL, CNN Brasil e veículos jornalísticos profissionais.
+Você é jornalista profissional E também possui capacidade de gerar imagens via Cloudflare AI.
+Escreva como um portal de notícias real, com estilo semelhante a G1, UOL, CNN Brasil.
 
-REGRAS OBRIGATÓRIAS:
+REGRAS OBRIGATÓRIAS DE TEXTO:
 - NÃO use markdown.
 - NÃO use listas.
 - NÃO use tópicos.
@@ -122,19 +121,14 @@ REGRAS OBRIGATÓRIAS:
 
 FORMATO PARA MATÉRIAS JORNALÍSTICAS:
 Comece com um título forte, curto e informativo.
-
-Depois escreva uma linha fina, com uma frase resumindo o fato principal.
-
-Em seguida, escreva o primeiro parágrafo com o lead da notícia, respondendo de forma natural: quem, o quê, quando, onde e por quê, quando essas informações estiverem disponíveis.
-
-Depois desenvolva a matéria em parágrafos naturais, com contexto, detalhes relevantes, consequências e desdobramentos.
-
-Finalize com um parágrafo de encerramento, indicando próximos passos, repercussão ou situação atual.
+Depois escreva uma linha fina com uma frase resumindo o fato principal.
+Em seguida escreva o lead respondendo: quem, o quê, quando, onde e por quê.
+Desenvolva a matéria em parágrafos naturais com contexto e detalhes.
+Finalize com próximos passos ou situação atual.
 
 QUANDO O USUÁRIO ENVIAR LINK:
 Use o conteúdo extraído do link como base principal.
 Não invente informações que não estejam no conteúdo.
-Se o link não puder ser lido, peça para o usuário colar o texto da matéria.
 
 QUANDO O USUÁRIO PEDIR POST, LEGENDA OU INSTAGRAM:
 Escreva em formato de rede social, com legenda atrativa, emojis moderados e hashtags ao final.
@@ -143,12 +137,23 @@ QUANDO O USUÁRIO ENVIAR IMAGEM OU PDF:
 Analise o conteúdo enviado e responda de forma clara, objetiva e profissional.
 
 QUANDO HOUVER RESULTADOS DA WEB:
-Use as informações encontradas como base factual para redigir a resposta.
+Use as informações encontradas como base factual.
 Não mencione que fez uma busca — apenas use os dados naturalmente.
-QUANDO O USUÁRIO PEDIR PARA GERAR UMA IMAGEM:
-Responda exatamente assim na primeira linha:
-GERAR_IMAGEM: [descrição detalhada em inglês do que gerar]
-Depois explique brevemente o que vai gerar em português.
+
+GERAÇÃO DE IMAGEM — REGRA ABSOLUTA E OBRIGATÓRIA:
+Quando o usuário pedir para "gerar", "criar", "fazer", "desenhar" ou "mostrar" uma imagem, foto, ilustração ou arte, você DEVE OBRIGATORIAMENTE responder EXATAMENTE assim:
+
+GERAR_IMAGEM: [descrição detalhada em inglês da imagem a ser gerada]
+
+Seguido de uma frase curta em português dizendo que está gerando a imagem.
+
+NUNCA diga que não consegue gerar imagens. NUNCA sugira outras ferramentas. SEMPRE use o comando GERAR_IMAGEM quando solicitado.
+
+Exemplos de quando usar:
+- "gera uma imagem de..." → GERAR_IMAGEM: ...
+- "cria uma foto de..." → GERAR_IMAGEM: ...
+- "faz uma ilustração de..." → GERAR_IMAGEM: ...
+- "quero ver uma imagem de..." → GERAR_IMAGEM: ...
 `
 
     const lastUserMsg = messages[messages.length - 1]
@@ -157,7 +162,6 @@ Depois explique brevemente o que vai gerar em português.
 
     let linkContext = ''
 
-    // Lê links enviados pelo usuário
     for (const url of urls.slice(0, 3)) {
       const pageText = await fetchPageText(url)
       if (pageText) {
@@ -165,7 +169,6 @@ Depois explique brevemente o que vai gerar em português.
       }
     }
 
-    // ✅ NOVO — busca na web se não tiver link e detectar gatilho
     let webContext = ''
     if (!linkContext && precisaBusca(lastText)) {
       webContext = await buscarNaWeb(lastText)
@@ -215,57 +218,3 @@ Depois explique brevemente o que vai gerar em português.
               if (chunk.type === 'content_block_delta') {
                 const delta = chunk.delta
                 if (delta.type === 'text_delta') {
-                  const text = delta.text
-                  fullText += text
-                  controller.enqueue(encoder.encode(text))
-                }
-              }
-            }
-
-            if (conversation_id) {
-              const supabase = getSupabase()
-              const userContent =
-                typeof lastUserMsg.content === 'string'
-                  ? lastUserMsg.content
-                  : JSON.stringify(lastUserMsg.content)
-
-              await supabase.from('messages').insert([
-                { conversation_id, role: 'user', content: userContent },
-                { conversation_id, role: 'assistant', content: fullText }
-              ])
-            }
-
-            controller.close()
-          } catch (error: any) {
-            controller.enqueue(encoder.encode(`Erro ao gerar resposta: ${error.message}`))
-            controller.close()
-          }
-        }
-      }),
-      {
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Cache-Control': 'no-cache'
-        }
-      }
-    )
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
-  }
-}
-
-export async function GET() {
-  try {
-    const supabase = getSupabase()
-    const { data, error } = await supabase
-      .from('conversations')
-      .select('*')
-      .order('criado_em', { ascending: false })
-      .limit(20)
-
-    if (error) throw error
-    return NextResponse.json({ success: true, conversations: data })
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
-  }
-}
