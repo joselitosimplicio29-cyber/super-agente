@@ -145,6 +145,10 @@ Analise o conteúdo enviado e responda de forma clara, objetiva e profissional.
 QUANDO HOUVER RESULTADOS DA WEB:
 Use as informações encontradas como base factual para redigir a resposta.
 Não mencione que fez uma busca — apenas use os dados naturalmente.
+QUANDO O USUÁRIO PEDIR PARA GERAR UMA IMAGEM:
+Responda exatamente assim na primeira linha:
+GERAR_IMAGEM: [descrição detalhada em inglês do que gerar]
+Depois explique brevemente o que vai gerar em português.
 `
 
     const lastUserMsg = messages[messages.length - 1]
