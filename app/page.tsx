@@ -1,28 +1,29 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
-interface Message {
+type Message = {
   role: 'user' | 'assistant'
   content: string | any[]
   preview?: string
   fileName?: string
 }
 
-interface Client {
+type Client = {
   id: string
   nome: string
   instagram?: string
   nicho?: string
 }
 
-export default function ChatPage() {
+export default function HomePage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [clientes, setClientes] = useState<Client[]>([])
   const [clienteSelecionado, setClienteSelecionado] = useState<Client | null>(null)
-  const [sidebarAberta, setSidebarAberta] = useState(true)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [arquivo, setArquivo] = useState<{ base64: string; type: string; name: string } | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
@@ -42,6 +43,14 @@ export default function ChatPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
+
+  function textoMensagem(content: string | any[]) {
+    if (typeof content === 'string') return content
+    if (Array.isArray(content)) {
+      return content.find((item: any) => item.type === 'text')?.text || ''
+    }
+    return ''
+  }
 
   function handleArquivo(file: File) {
     const reader = new FileReader()
@@ -72,13 +81,10 @@ export default function ChatPage() {
     for (const item of items) {
       if (item.type.startsWith('image/')) {
         const file = item.getAsFile()
-
         if (file) {
           e.preventDefault()
           handleArquivo(file)
         }
-
-        break
       }
     }
   }
@@ -86,32 +92,7 @@ export default function ChatPage() {
   function removerArquivo() {
     setArquivo(null)
     setPreview(null)
-
-    if (fileRef.current) {
-      fileRef.current.value = ''
-    }
-  }
-
-  async function criarConversa() {
-    const titulo = input.trim().slice(0, 50) || 'Nova conversa'
-
-    const res = await fetch('/api/chat/conversations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        cliente_id: clienteSelecionado?.id,
-        titulo
-      })
-    })
-
-    const data = await res.json()
-
-    if (data.id) {
-      setConversationId(data.id)
-      return data.id
-    }
-
-    return null
+    if (fileRef.current) fileRef.current.value = ''
   }
 
   function montarUserContent() {
@@ -149,7 +130,7 @@ export default function ChatPage() {
     } else if (arquivo?.type.startsWith('image/')) {
       content.push({
         type: 'text',
-        text: 'Analise esta imagem.'
+        text: 'Analise esta imagem de forma profissional.'
       })
     } else if (arquivo?.type === 'application/pdf') {
       content.push({
@@ -161,14 +142,24 @@ export default function ChatPage() {
     return content
   }
 
-  function textoDaMensagem(content: string | any[]) {
-    if (typeof content === 'string') return content
+  async function criarConversa() {
+    const titulo = input.trim().slice(0, 50) || 'Nova conversa'
 
-    if (Array.isArray(content)) {
-      return content.find((item: any) => item.type === 'text')?.text || ''
-    }
+    try {
+      const res = await fetch('/api/chat/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cliente_id: clienteSelecionado?.id, titulo })
+      })
 
-    return ''
+      const data = await res.json()
+      if (data.id) {
+        setConversationId(data.id)
+        return data.id
+      }
+    } catch {}
+
+    return null
   }
 
   async function enviar() {
@@ -185,28 +176,16 @@ export default function ChatPage() {
 
     const newMessages = [...messages, userMsg]
 
-    setMessages([
-      ...newMessages,
-      {
-        role: 'assistant',
-        content: ''
-      }
-    ])
-
+    setMessages([...newMessages, { role: 'assistant', content: '' }])
     setInput('')
     setArquivo(null)
     setPreview(null)
     setLoading(true)
 
-    if (fileRef.current) {
-      fileRef.current.value = ''
-    }
+    if (fileRef.current) fileRef.current.value = ''
 
     let convId = conversationId
-
-    if (!convId) {
-      convId = await criarConversa()
-    }
+    if (!convId) convId = await criarConversa()
 
     try {
       const response = await fetch('/api/chat', {
@@ -223,17 +202,15 @@ export default function ChatPage() {
       })
 
       if (!response.ok || !response.body) {
-        throw new Error('Erro ao gerar resposta.')
+        throw new Error('Não foi possível gerar resposta.')
       }
 
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
-
       let result = ''
 
       while (true) {
         const { done, value } = await reader.read()
-
         if (done) break
 
         const chunk = decoder.decode(value)
@@ -241,17 +218,9 @@ export default function ChatPage() {
 
         setMessages(prev => {
           const last = prev[prev.length - 1]
-
           if (last?.role === 'assistant') {
-            return [
-              ...prev.slice(0, -1),
-              {
-                ...last,
-                content: result
-              }
-            ]
+            return [...prev.slice(0, -1), { ...last, content: result }]
           }
-
           return prev
         })
       }
@@ -260,7 +229,7 @@ export default function ChatPage() {
         ...prev.slice(0, -1),
         {
           role: 'assistant',
-          content: `Erro: ${error.message || 'não foi possível responder agora.'}`
+          content: `Erro: ${error.message || 'não consegui responder agora.'}`
         }
       ])
     }
@@ -268,60 +237,41 @@ export default function ChatPage() {
     setLoading(false)
   }
 
-  const modos = [
-    {
-      icon: '💬',
-      title: 'Conversar',
-      desc: 'Tire dúvidas e crie textos',
-      prompt: ''
-    },
+  const menu = [
+    { icon: '💬', label: 'Chat' },
+    { icon: '✨', label: 'Criar' },
+    { icon: '📰', label: 'Matérias' },
+    { icon: '📸', label: 'Imagens' },
+    { icon: '📄', label: 'PDFs' },
+    { icon: '👥', label: 'Clientes' },
+    { icon: '🗂️', label: 'Histórico' }
+  ]
+
+  const atalhos = [
     {
       icon: '📰',
       title: 'Matéria jornalística',
-      desc: 'Texto profissional de notícia',
-      prompt: 'Escreva uma matéria jornalística sobre: '
+      text: 'Escreva uma matéria jornalística sobre: '
     },
     {
       icon: '🔗',
       title: 'Ler link',
-      desc: 'Resumo de notícia ou página',
-      prompt: 'Leia este link e transforme em matéria jornalística: '
-    },
-    {
-      icon: '📸',
-      title: 'Analisar imagem',
-      desc: 'Envie ou cole uma foto',
-      prompt: 'Analise esta imagem de forma profissional.'
-    },
-    {
-      icon: '📄',
-      title: 'Ler PDF',
-      desc: 'Resumo de documento',
-      prompt: 'Leia e resuma este documento.'
+      text: 'Leia este link e transforme em uma matéria jornalística: '
     },
     {
       icon: '📱',
       title: 'Post Instagram',
-      desc: 'Legenda e hashtags',
-      prompt: 'Crie uma legenda para Instagram sobre: '
+      text: 'Crie uma legenda para Instagram sobre: '
+    },
+    {
+      icon: '📸',
+      title: 'Analisar imagem',
+      text: 'Analise esta imagem de forma profissional.'
     }
   ]
 
-  const menu = [
-    { icon: '💬', label: 'Chat' },
-    { icon: '📊', label: 'Dashboard' },
-    { icon: '✨', label: 'Gerar' },
-    { icon: '🎬', label: 'Mídia' },
-    { icon: '👥', label: 'Clientes' },
-    { icon: '📅', label: 'Agenda' },
-    { icon: '💰', label: 'Financeiro' },
-    { icon: '🗂️', label: 'Histórico' },
-    { icon: '📌', label: 'Kanban' },
-    { icon: '📝', label: 'Notas' }
-  ]
-
   return (
-    <div className="appShell">
+    <div className="app">
       <style>{`
         * {
           box-sizing: border-box;
@@ -329,122 +279,99 @@ export default function ChatPage() {
 
         body {
           margin: 0;
-          background: #0B1220;
+          background: #070D18;
         }
 
-        .appShell {
-         .appShell {
-                   height: 100vh;
-                 width: 100%;
-              max-width: 1400px;
-              margin: 0 auto;
-               display: flex;
-              overflow: hidden;
-            background:
-    radial-gradient(circle at top right, rgba(14,165,233,.16), transparent 34%),
-    linear-gradient(135deg, #0B111F 0%, #0B1220 45%, #111827 100%);
-  color: #E5E7EB;
-}
+        .app {
+          min-height: 100vh;
+          display: flex;
+          background:
+            radial-gradient(circle at 75% 10%, rgba(37, 99, 235, .16), transparent 35%),
+            radial-gradient(circle at 35% 80%, rgba(245, 158, 11, .10), transparent 30%),
+            linear-gradient(135deg, #070D18 0%, #0B1220 45%, #111827 100%);
+          color: #E5E7EB;
+          font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
 
         .sidebar {
-          width: 250px;
-          background: rgba(15, 23, 42, .92);
+          width: 260px;
+          background: rgba(15, 23, 42, .88);
           border-right: 1px solid rgba(255,255,255,.08);
           display: flex;
           flex-direction: column;
-          backdrop-filter: blur(16px);
+          padding: 22px 18px;
           flex-shrink: 0;
         }
 
         .brand {
-          padding: 22px 18px 18px;
-          border-bottom: 1px solid rgba(255,255,255,.08);
+          margin-bottom: 28px;
         }
 
         .brandTitle {
-          font-size: 17px;
-          font-weight: 900;
           color: #F59E0B;
-          letter-spacing: -.02em;
+          font-size: 22px;
+          font-weight: 900;
+          letter-spacing: -.04em;
         }
 
         .brandSub {
-          margin-top: 4px;
-          font-size: 11px;
           color: #64748B;
+          font-size: 13px;
+          margin-top: 4px;
         }
 
-        .sidebarContent {
-          padding: 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-          overflow: auto;
+        .newChat {
+          border: 1px solid rgba(245,158,11,.35);
+          background: rgba(245,158,11,.12);
+          color: #FBBF24;
+          border-radius: 14px;
+          padding: 13px 14px;
+          font-weight: 900;
+          cursor: pointer;
+          margin-bottom: 16px;
         }
 
-        .sideLabel {
-          color: #475569;
-          font-size: 10px;
+        .clientLabel {
+          color: #64748B;
+          font-size: 11px;
           letter-spacing: .16em;
           text-transform: uppercase;
-          font-weight: 800;
+          font-weight: 900;
           margin-bottom: 8px;
         }
 
         .clientSelect {
           width: 100%;
-          background: #111827;
+          background: #0B1220;
           color: #E5E7EB;
           border: 1px solid rgba(255,255,255,.10);
-          border-radius: 12px;
-          padding: 11px 12px;
-          outline: none;
-          font-size: 12px;
-        }
-
-        .newButton {
-          width: 100%;
-          border: 1px solid rgba(245,158,11,.34);
-          background: linear-gradient(135deg, rgba(245,158,11,.18), rgba(245,158,11,.06));
-          color: #FBBF24;
           border-radius: 14px;
-          padding: 12px 14px;
-          font-size: 12px;
-          font-weight: 900;
-          cursor: pointer;
-          transition: all .2s ease;
+          padding: 13px;
+          margin-bottom: 16px;
+          outline: none;
         }
 
-        .newButton:hover {
-          transform: translateY(-1px);
-          background: rgba(245,158,11,.22);
-        }
-
-        .menuList {
+        .menu {
           display: flex;
           flex-direction: column;
           gap: 6px;
-          margin-top: 4px;
         }
 
         .menuItem {
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 11px 12px;
-          border-radius: 12px;
+          gap: 12px;
+          padding: 13px 14px;
+          border-radius: 14px;
           color: #94A3B8;
-          font-size: 13px;
+          font-size: 14px;
           cursor: pointer;
-          transition: all .18s ease;
-          border: 1px solid transparent;
         }
 
         .menuItem.active {
-          background: #1F2937;
+          background: rgba(31,41,55,.9);
           color: #F8FAFC;
-          border-color: rgba(255,255,255,.08);
-          box-shadow: inset 3px 0 0 #F59E0B;
+          box-shadow: inset 4px 0 0 #F59E0B;
         }
 
         .menuItem:hover {
@@ -460,14 +387,14 @@ export default function ChatPage() {
         }
 
         .topbar {
-          height: 64px;
-          padding: 0 22px;
+          height: 68px;
+          border-bottom: 1px solid rgba(255,255,255,.07);
           display: flex;
           align-items: center;
           justify-content: space-between;
-          border-bottom: 1px solid rgba(255,255,255,.07);
-          background: rgba(8, 17, 31, .72);
-          backdrop-filter: blur(18px);
+          padding: 0 26px;
+          background: rgba(7,13,24,.72);
+          backdrop-filter: blur(16px);
         }
 
         .status {
@@ -475,136 +402,123 @@ export default function ChatPage() {
           align-items: center;
           gap: 10px;
           color: #94A3B8;
-          font-size: 13px;
+          font-size: 14px;
         }
 
         .dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
+          width: 9px;
+          height: 9px;
           background: #10B981;
-          box-shadow: 0 0 18px rgba(16,185,129,.8);
-        }
-
-        .topActions {
-          display: flex;
-          align-items: center;
-          gap: 10px;
+          border-radius: 999px;
+          box-shadow: 0 0 18px rgba(16,185,129,.9);
         }
 
         .clientBadge {
-          background: rgba(245,158,11,.12);
           color: #FBBF24;
+          background: rgba(245,158,11,.12);
           border: 1px solid rgba(245,158,11,.25);
+          padding: 8px 12px;
           border-radius: 999px;
-          padding: 7px 11px;
-          font-size: 12px;
+          font-size: 13px;
           font-weight: 800;
         }
 
-        .messagesArea {
+        .content {
           flex: 1;
           overflow-y: auto;
-          padding: 28px 24px 18px;
+          padding: 34px 24px 20px;
         }
 
-        .chatWrap {
+        .chatContainer {
           width: 100%;
-          max-width: 920px;
+          max-width: 980px;
           margin: 0 auto;
           min-height: 100%;
-          display: flex;
-          flex-direction: column;
         }
 
-        .emptyState {
-          margin: auto;
-          width: 100%;
-          max-width: 720px;
+        .hero {
+          min-height: calc(100vh - 220px);
           display: flex;
           flex-direction: column;
           align-items: center;
+          justify-content: center;
           text-align: center;
-          padding: 30px 0 80px;
         }
 
-        .heroIcon {
-          width: 72px;
-          height: 72px;
-          border-radius: 24px;
+        .heroLogo {
+          width: 74px;
+          height: 74px;
+          border-radius: 26px;
           background: linear-gradient(135deg, #F59E0B, #F97316);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 34px;
-          box-shadow: 0 20px 60px rgba(245,158,11,.25);
-          margin-bottom: 20px;
+          font-size: 36px;
+          margin-bottom: 22px;
+          box-shadow: 0 24px 70px rgba(245,158,11,.25);
         }
 
         .heroTitle {
-          font-size: 32px;
+          font-size: 38px;
           font-weight: 950;
-          letter-spacing: -.04em;
+          letter-spacing: -.05em;
           color: #F8FAFC;
         }
 
         .heroText {
+          margin-top: 12px;
           color: #94A3B8;
-          font-size: 15px;
-          line-height: 1.6;
-          max-width: 560px;
-          margin-top: 10px;
+          max-width: 620px;
+          line-height: 1.7;
+          font-size: 16px;
         }
 
-        .modeGrid {
-          margin-top: 30px;
-          width: 100%;
+        .shortcutGrid {
+          margin-top: 34px;
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 12px;
+          grid-template-columns: repeat(2, minmax(240px, 1fr));
+          gap: 14px;
+          width: 100%;
+          max-width: 720px;
         }
 
-        .modeCard {
+        .shortcut {
           text-align: left;
+          background: linear-gradient(145deg, rgba(31,41,55,.88), rgba(15,23,42,.95));
           border: 1px solid rgba(255,255,255,.08);
-          background: rgba(31, 41, 55, .72);
+          border-radius: 20px;
+          padding: 20px;
           color: #E5E7EB;
-          border-radius: 18px;
-          padding: 18px;
           cursor: pointer;
+          box-shadow: 0 22px 70px rgba(0,0,0,.22);
           transition: all .2s ease;
-          min-height: 122px;
-          box-shadow: 0 18px 50px rgba(0,0,0,.18);
         }
 
-        .modeCard:hover {
-          transform: translateY(-3px);
+        .shortcut:hover {
+          transform: translateY(-4px);
           border-color: rgba(245,158,11,.35);
-          background: rgba(31, 41, 55, .95);
         }
 
-        .modeIcon {
-          font-size: 24px;
+        .shortcutIcon {
+          font-size: 26px;
           margin-bottom: 12px;
         }
 
-        .modeTitle {
-          font-size: 14px;
+        .shortcutTitle {
           font-weight: 900;
           color: #F8FAFC;
         }
 
-        .modeDesc {
-          margin-top: 5px;
-          font-size: 12px;
+        .shortcutDesc {
           color: #94A3B8;
-          line-height: 1.4;
+          font-size: 13px;
+          margin-top: 6px;
         }
 
         .messageRow {
           display: flex;
           gap: 12px;
-          margin-bottom: 22px;
+          margin-bottom: 24px;
           animation: fadeUp .18s ease;
         }
 
@@ -613,93 +527,99 @@ export default function ChatPage() {
         }
 
         .avatar {
-          width: 34px;
-          height: 34px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #1D4ED8, #F59E0B);
+          width: 36px;
+          height: 36px;
+          border-radius: 999px;
+          background: linear-gradient(135deg, #F59E0B, #2563EB);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 13px;
           font-weight: 900;
           flex-shrink: 0;
-          box-shadow: 0 10px 25px rgba(0,0,0,.25);
+          box-shadow: 0 14px 30px rgba(0,0,0,.35);
         }
 
         .bubble {
           max-width: min(760px, 78%);
-          border-radius: 18px;
-          padding: 16px 18px;
-          font-size: 14px;
-          line-height: 1.8;
-          white-space: pre-wrap;
+          border-radius: 20px;
+          padding: 18px 20px;
+          font-size: 15px;
+          line-height: 1.9;
           word-break: break-word;
         }
 
         .bubble.user {
           background: linear-gradient(135deg, #2563EB, #1D4ED8);
-          color: #FFFFFF;
+          color: white;
           border-bottom-right-radius: 6px;
-          box-shadow: 0 14px 35px rgba(37,99,235,.22);
+          box-shadow: 0 22px 55px rgba(37,99,235,.28);
         }
 
         .bubble.assistant {
-          background: rgba(31, 41, 55, .88);
-          color: #E5E7EB;
+          background: linear-gradient(135deg, rgba(30,41,59,.96), rgba(15,23,42,.96));
           border: 1px solid rgba(255,255,255,.08);
+          color: #E5E7EB;
           border-bottom-left-radius: 6px;
-          box-shadow: 0 16px 50px rgba(0,0,0,.22);
+          box-shadow: 0 24px 70px rgba(0,0,0,.32);
         }
 
-        .attachedImage {
-          width: 100%;
-          max-width: 340px;
-          border-radius: 14px;
-          margin-bottom: 10px;
-          border: 1px solid rgba(255,255,255,.10);
-          display: block;
+        .markdown p {
+          margin: 0 0 14px;
         }
 
-        .fileBox {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 10px 12px;
-          border-radius: 12px;
-          background: rgba(255,255,255,.06);
-          margin-bottom: 10px;
-          color: #CBD5E1;
-          font-size: 12px;
+        .markdown p:last-child {
+          margin-bottom: 0;
         }
 
-        .copyButton {
+        .markdown h1,
+        .markdown h2,
+        .markdown h3 {
+          margin: 18px 0 10px;
+          color: #F8FAFC;
+          line-height: 1.3;
+        }
+
+        .markdown ul,
+        .markdown ol {
+          padding-left: 20px;
+          margin: 10px 0;
+        }
+
+        .markdown strong {
+          color: #F8FAFC;
+        }
+
+        .markdown code {
+          background: rgba(255,255,255,.08);
+          padding: 2px 6px;
+          border-radius: 6px;
+        }
+
+        .copyBtn {
           margin-top: 12px;
-          padding: 7px 11px;
-          border-radius: 10px;
           border: 1px solid rgba(255,255,255,.10);
           background: rgba(255,255,255,.04);
           color: #94A3B8;
+          padding: 7px 11px;
+          border-radius: 10px;
           cursor: pointer;
           font-size: 12px;
-          transition: all .2s ease;
         }
 
-        .copyButton:hover {
+        .copyBtn:hover {
           color: #F8FAFC;
           background: rgba(255,255,255,.08);
         }
 
         .typing {
-          display: inline-flex;
-          gap: 4px;
-          align-items: center;
-          color: #94A3B8;
+          display: flex;
+          gap: 5px;
         }
 
         .typing span {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
+          width: 7px;
+          height: 7px;
+          border-radius: 999px;
           background: #94A3B8;
           animation: pulse 1s infinite ease-in-out;
         }
@@ -712,16 +632,15 @@ export default function ChatPage() {
           animation-delay: .3s;
         }
 
-        .inputArea {
-          padding: 16px 24px 22px;
+        .inputBar {
           border-top: 1px solid rgba(255,255,255,.07);
-          background: rgba(8,17,31,.74);
+          padding: 18px 24px 24px;
+          background: rgba(7,13,24,.78);
           backdrop-filter: blur(18px);
         }
 
         .inputWrap {
-          width: 100%;
-          max-width: 920px;
+          max-width: 980px;
           margin: 0 auto;
         }
 
@@ -730,17 +649,17 @@ export default function ChatPage() {
           display: flex;
           align-items: center;
           gap: 12px;
-          background: rgba(31,41,55,.9);
+          background: rgba(31,41,55,.95);
           border: 1px solid rgba(255,255,255,.08);
           border-radius: 16px;
           padding: 10px 12px;
         }
 
         .previewImg {
-          width: 52px;
-          height: 52px;
-          border-radius: 12px;
+          width: 54px;
+          height: 54px;
           object-fit: cover;
+          border-radius: 12px;
         }
 
         .previewName {
@@ -749,12 +668,12 @@ export default function ChatPage() {
           font-size: 13px;
         }
 
-        .removeButton {
+        .removeBtn {
           border: none;
           background: rgba(239,68,68,.16);
           color: #FCA5A5;
           border-radius: 10px;
-          padding: 7px 11px;
+          padding: 8px 11px;
           cursor: pointer;
         }
 
@@ -764,72 +683,66 @@ export default function ChatPage() {
           gap: 10px;
           background: rgba(31,41,55,.96);
           border: 1px solid rgba(255,255,255,.10);
-          border-radius: 24px;
+          border-radius: 26px;
           padding: 12px 14px;
-          box-shadow: 0 20px 70px rgba(0,0,0,.28);
+          box-shadow: 0 0 34px rgba(37,99,235,.16), 0 24px 70px rgba(0,0,0,.28);
         }
 
-        .attachButton {
-          width: 38px;
-          height: 38px;
-          border-radius: 50%;
+        .attachBtn {
+          width: 40px;
+          height: 40px;
+          border-radius: 999px;
           border: 1px solid rgba(255,255,255,.08);
           background: rgba(255,255,255,.04);
           color: #94A3B8;
           cursor: pointer;
           font-size: 18px;
-          transition: all .2s ease;
           flex-shrink: 0;
         }
 
-        .attachButton:hover {
+        .attachBtn:hover {
           color: #F8FAFC;
           background: rgba(255,255,255,.08);
         }
 
-        .textarea {
+        textarea {
           flex: 1;
-          min-height: 38px;
-          max-height: 160px;
-          background: transparent;
           border: none;
           outline: none;
-          resize: none;
+          background: transparent;
           color: #F8FAFC;
-          font-size: 14px;
-          line-height: 1.6;
+          resize: none;
+          min-height: 40px;
+          max-height: 160px;
+          padding: 9px 0;
           font-family: inherit;
-          padding: 7px 0;
+          font-size: 15px;
+          line-height: 1.6;
         }
 
-        .textarea::placeholder {
+        textarea::placeholder {
           color: #64748B;
         }
 
-        .sendButton {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
+        .sendBtn {
+          width: 42px;
+          height: 42px;
+          border-radius: 999px;
           border: none;
-          background: linear-gradient(135deg, #F59E0B, #F97316);
-          color: #111827;
-          font-size: 17px;
-          font-weight: 950;
+          background: linear-gradient(135deg, #2563EB, #1D4ED8);
+          color: white;
+          font-size: 18px;
+          font-weight: 900;
           cursor: pointer;
-          transition: all .2s ease;
           flex-shrink: 0;
-          box-shadow: 0 10px 26px rgba(245,158,11,.24);
+          box-shadow: 0 16px 36px rgba(37,99,235,.32);
         }
 
-        .sendButton:disabled {
-          cursor: not-allowed;
+        .sendBtn:disabled {
           background: rgba(255,255,255,.08);
           color: #475569;
           box-shadow: none;
-        }
-
-        .sendButton:not(:disabled):hover {
-          transform: translateY(-1px) scale(1.03);
+          cursor: not-allowed;
         }
 
         .hint {
@@ -839,10 +752,26 @@ export default function ChatPage() {
           font-size: 11px;
         }
 
+        .fileBox {
+          background: rgba(255,255,255,.06);
+          border-radius: 12px;
+          padding: 10px 12px;
+          margin-bottom: 10px;
+          color: #CBD5E1;
+        }
+
+        .attachedImage {
+          max-width: 360px;
+          width: 100%;
+          border-radius: 14px;
+          margin-bottom: 12px;
+          border: 1px solid rgba(255,255,255,.10);
+        }
+
         @keyframes fadeUp {
           from {
             opacity: 0;
-            transform: translateY(6px);
+            transform: translateY(8px);
           }
           to {
             opacity: 1;
@@ -857,7 +786,7 @@ export default function ChatPage() {
           }
           40% {
             opacity: 1;
-            transform: translateY(-3px);
+            transform: translateY(-4px);
           }
         }
 
@@ -865,12 +794,8 @@ export default function ChatPage() {
           width: 8px;
         }
 
-        ::-webkit-scrollbar-track {
-          background: transparent;
-        }
-
         ::-webkit-scrollbar-thumb {
-          background: rgba(148,163,184,.25);
+          background: rgba(148,163,184,.22);
           border-radius: 999px;
         }
 
@@ -879,201 +804,178 @@ export default function ChatPage() {
             display: none;
           }
 
-          .modeGrid {
-            grid-template-columns: 1fr 1fr;
-          }
-
-          .bubble {
-            max-width: 88%;
-          }
-        }
-
-        @media (max-width: 620px) {
-          .modeGrid {
+          .shortcutGrid {
             grid-template-columns: 1fr;
           }
 
-          .heroTitle {
-            font-size: 25px;
-          }
-
-          .messagesArea {
-            padding: 20px 14px;
-          }
-
-          .inputArea {
-            padding: 12px;
-          }
-
           .bubble {
-            max-width: 92%;
+            max-width: 90%;
           }
         }
       `}</style>
 
-      {sidebarAberta && (
-        <aside className="sidebar">
-          <div className="brand">
-            <div className="brandTitle">Super Agente</div>
-            <div className="brandSub">TV Sertão Livre</div>
-          </div>
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brandTitle">Super Agente</div>
+          <div className="brandSub">TV Sertão Livre</div>
+        </div>
 
-          <div className="sidebarContent">
-            <div>
-              <div className="sideLabel">Cliente ativo</div>
-              <select
-                className="clientSelect"
-                value={clienteSelecionado?.id || ''}
-                onChange={e => setClienteSelecionado(clientes.find(c => c.id === e.target.value) || null)}
-              >
-                <option value="">Sem cliente</option>
-                {clientes.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.nome}
-                  </option>
-                ))}
-              </select>
+        <div className="clientLabel">Cliente ativo</div>
+
+        <select
+          className="clientSelect"
+          value={clienteSelecionado?.id || ''}
+          onChange={e => {
+            const cliente = clientes.find(c => c.id === e.target.value) || null
+            setClienteSelecionado(cliente)
+          }}
+        >
+          <option value="">Sem cliente</option>
+          {clientes.map(c => (
+            <option key={c.id} value={c.id}>
+              {c.nome}
+            </option>
+          ))}
+        </select>
+
+        <button
+          className="newChat"
+          onClick={() => {
+            setMessages([])
+            setInput('')
+            setConversationId(null)
+            removerArquivo()
+          }}
+        >
+          + Nova conversa
+        </button>
+
+        <nav className="menu">
+          {menu.map((item, index) => (
+            <div key={item.label} className={`menuItem ${index === 0 ? 'active' : ''}`}>
+              <span>{item.icon}</span>
+              <span>{item.label}</span>
             </div>
-
-            <button
-              className="newButton"
-              onClick={() => {
-                setMessages([])
-                setConversationId(null)
-                setInput('')
-                removerArquivo()
-              }}
-            >
-              + Nova conversa
-            </button>
-
-            <nav className="menuList">
-              {menu.map(item => (
-                <div key={item.label} className={`menuItem ${item.label === 'Chat' ? 'active' : ''}`}>
-                  <span>{item.icon}</span>
-                  <span>{item.label}</span>
-                </div>
-              ))}
-            </nav>
-          </div>
-        </aside>
-      )}
+          ))}
+        </nav>
+      </aside>
 
       <main className="main">
         <header className="topbar">
           <div className="status">
-            {!sidebarAberta && (
-              <button className="attachButton" onClick={() => setSidebarAberta(true)}>
-                ☰
-              </button>
-            )}
             <span className="dot" />
             <span>Claude Sonnet</span>
           </div>
 
-          <div className="topActions">
-            {clienteSelecionado && (
-              <div className="clientBadge">
-                {clienteSelecionado.nome}
-              </div>
-            )}
-          </div>
+          {clienteSelecionado && (
+            <div className="clientBadge">
+              {clienteSelecionado.nome}
+            </div>
+          )}
         </header>
 
-        <section className="messagesArea">
-          <div className="chatWrap">
-            {messages.length === 0 && (
-              <div className="emptyState">
-                <div className="heroIcon">⚡</div>
-                <div className="heroTitle">Super Agente</div>
-                <div className="heroText">
-                  Crie matérias jornalísticas, leia links, analise imagens, resuma PDFs e produza conteúdo profissional para redes sociais.
+        <section className="content">
+          <div className="chatContainer">
+            {messages.length === 0 ? (
+              <div className="hero">
+                <div className="heroLogo">⚡</div>
+
+                <div className="heroTitle">
+                  Super Agente IA
                 </div>
 
-                <div className="modeGrid">
-                  {modos.map(modo => (
-                    <button
-                      key={modo.title}
-                      className="modeCard"
-                      onClick={() => {
-                        setInput(modo.prompt)
+                <div className="heroText">
+                  Sua inteligência artificial para criar matérias, ler links, analisar imagens,
+                  resumir PDFs e produzir conteúdo profissional para a TV Sertão Livre.
+                </div>
 
-                        if (modo.title === 'Analisar imagem' || modo.title === 'Ler PDF') {
+                <div className="shortcutGrid">
+                  {atalhos.map(item => (
+                    <button
+                      key={item.title}
+                      className="shortcut"
+                      onClick={() => {
+                        setInput(item.text)
+
+                        if (item.title === 'Analisar imagem') {
                           fileRef.current?.click()
                         }
                       }}
                     >
-                      <div className="modeIcon">{modo.icon}</div>
-                      <div className="modeTitle">{modo.title}</div>
-                      <div className="modeDesc">{modo.desc}</div>
+                      <div className="shortcutIcon">{item.icon}</div>
+                      <div className="shortcutTitle">{item.title}</div>
+                      <div className="shortcutDesc">Clique para iniciar</div>
                     </button>
                   ))}
                 </div>
               </div>
-            )}
+            ) : (
+              messages.map((msg, index) => {
+                const isUser = msg.role === 'user'
+                const text = textoMensagem(msg.content)
 
-            {messages.map((msg, index) => {
-              const isUser = msg.role === 'user'
-              const text = textoDaMensagem(msg.content)
+                return (
+                  <div key={index} className={`messageRow ${isUser ? 'user' : ''}`}>
+                    {!isUser && <div className="avatar">S</div>}
 
-              return (
-                <div key={index} className={`messageRow ${isUser ? 'user' : 'assistant'}`}>
-                  {!isUser && <div className="avatar">S</div>}
+                    <div className={`bubble ${isUser ? 'user' : 'assistant'}`}>
+                      {msg.preview && (
+                        <img src={msg.preview} className="attachedImage" alt="Anexo" />
+                      )}
 
-                  <div className={`bubble ${isUser ? 'user' : 'assistant'}`}>
-                    {msg.preview && (
-                      <img src={msg.preview} alt="Anexo" className="attachedImage" />
-                    )}
+                      {msg.fileName && !msg.preview && (
+                        <div className="fileBox">📄 {msg.fileName}</div>
+                      )}
 
-                    {msg.fileName && !msg.preview && (
-                      <div className="fileBox">
-                        <span>📄</span>
-                        <span>{msg.fileName}</span>
-                      </div>
-                    )}
+                      {text ? (
+                        isUser ? (
+                          text
+                        ) : (
+                          <div className="markdown">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {text}
+                            </ReactMarkdown>
+                          </div>
+                        )
+                      ) : !isUser && loading ? (
+                        <div className="typing">
+                          <span />
+                          <span />
+                          <span />
+                        </div>
+                      ) : null}
 
-                    {text ? (
-                      text
-                    ) : !isUser && loading ? (
-                      <span className="typing">
-                        <span />
-                        <span />
-                        <span />
-                      </span>
-                    ) : null}
-
-                    {!isUser && text && (
-                      <div>
+                      {!isUser && text && (
                         <button
-                          className="copyButton"
+                          className="copyBtn"
                           onClick={() => navigator.clipboard.writeText(text)}
                         >
                           Copiar resposta
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })
+            )}
 
             <div ref={bottomRef} />
           </div>
         </section>
 
-        <footer className="inputArea">
+        <footer className="inputBar">
           <div className="inputWrap">
             {(preview || arquivo) && (
               <div className="previewBox">
                 {preview ? (
-                  <img src={preview} alt="Preview" className="previewImg" />
+                  <img src={preview} className="previewImg" alt="Preview" />
                 ) : (
                   <span style={{ fontSize: 28 }}>📄</span>
                 )}
 
                 <span className="previewName">{arquivo?.name}</span>
 
-                <button className="removeButton" onClick={removerArquivo}>
+                <button className="removeBtn" onClick={removerArquivo}>
                   Remover
                 </button>
               </div>
@@ -1083,32 +985,38 @@ export default function ChatPage() {
               ref={fileRef}
               type="file"
               accept="image/*,application/pdf"
-              onChange={e => e.target.files?.[0] && handleArquivo(e.target.files[0])}
               style={{ display: 'none' }}
+              onChange={e => {
+                const file = e.target.files?.[0]
+                if (file) handleArquivo(file)
+              }}
             />
 
             <div className="composer">
-              <button className="attachButton" onClick={() => fileRef.current?.click()} title="Anexar imagem ou PDF">
+              <button
+                className="attachBtn"
+                onClick={() => fileRef.current?.click()}
+                title="Anexar imagem ou PDF"
+              >
                 📎
               </button>
 
               <textarea
-                className="textarea"
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onPaste={handlePaste}
+                placeholder="Mensagem, link, imagem ou PDF..."
+                rows={1}
                 onKeyDown={e => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
                     enviar()
                   }
                 }}
-                placeholder="Mensagem, link, ou cole uma imagem..."
-                rows={1}
               />
 
               <button
-                className="sendButton"
+                className="sendBtn"
                 disabled={loading || (!input.trim() && !arquivo)}
                 onClick={enviar}
               >
