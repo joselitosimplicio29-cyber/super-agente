@@ -18,14 +18,12 @@ function getSupabase() {
 
 function getTextFromContent(content: any) {
   if (typeof content === 'string') return content
-
   if (Array.isArray(content)) {
     return content
       .filter((item: any) => item.type === 'text')
       .map((item: any) => item.text)
       .join('\n')
   }
-
   return ''
 }
 
@@ -34,31 +32,59 @@ function extractUrls(text: string) {
   return text.match(regex) || []
 }
 
+// ✅ NOVO — detecta se precisa buscar na web
+function precisaBusca(texto: string): boolean {
+  const gatilhos = [
+    'notícia', 'noticia', 'hoje', 'agora', 'essa semana', 'busca', 'pesquisa',
+    'o que aconteceu', 'novidade', 'atualidade', 'recente', 'último', 'ultimo',
+    'procura', 'encontra', 'pesquise', 'busque', 'me fala sobre', 'o que é',
+    'quem é', 'quando foi', 'jornal', 'portal', 'copa', 'eleição', 'eleicao'
+  ]
+  const lower = texto.toLowerCase()
+  const temUrl = extractUrls(texto).length > 0
+  return !temUrl && gatilhos.some(g => lower.includes(g))
+}
+
+// ✅ NOVO — busca no Google via Serper
+async function buscarNaWeb(query: string): Promise<string> {
+  try {
+    const res = await fetch('https://google.serper.dev/search', {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': process.env.SERPER_API_KEY!,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ q: query, gl: 'br', hl: 'pt-br', num: 6 })
+    })
+    const data = await res.json()
+    const resultados = (data.organic || []).map((r: any) =>
+      `• ${r.title}\n  ${r.snippet}\n  Fonte: ${r.link}`
+    ).join('\n\n')
+
+    return resultados
+      ? `\n\nResultados encontrados na web (use como base para responder):\n\n${resultados}`
+      : ''
+  } catch {
+    return ''
+  }
+}
+
 async function fetchPageText(url: string) {
   try {
     const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0'
-      }
+      headers: { 'User-Agent': 'Mozilla/5.0' }
     })
-
     if (!res.ok) return ''
-
     const html = await res.text()
     const $ = cheerio.load(html)
-
     $('script, style, nav, footer, header, iframe, noscript').remove()
-
     const title = $('title').text().trim()
     const description = $('meta[name="description"]').attr('content') || ''
-
     const text =
       $('article').text().trim() ||
       $('main').text().trim() ||
       $('body').text().trim()
-
     const cleanText = text.replace(/\s+/g, ' ').trim()
-
     return `
 Título original: ${title}
 
@@ -115,6 +141,10 @@ Escreva em formato de rede social, com legenda atrativa, emojis moderados e hash
 
 QUANDO O USUÁRIO ENVIAR IMAGEM OU PDF:
 Analise o conteúdo enviado e responda de forma clara, objetiva e profissional.
+
+QUANDO HOUVER RESULTADOS DA WEB:
+Use as informações encontradas como base factual para redigir a resposta.
+Não mencione que fez uma busca — apenas use os dados naturalmente.
 `
 
     const lastUserMsg = messages[messages.length - 1]
@@ -123,50 +153,44 @@ Analise o conteúdo enviado e responda de forma clara, objetiva e profissional.
 
     let linkContext = ''
 
+    // Lê links enviados pelo usuário
     for (const url of urls.slice(0, 3)) {
       const pageText = await fetchPageText(url)
-
       if (pageText) {
-        linkContext += `
-
-Conteúdo extraído do link ${url}:
-
-${pageText}
-`
+        linkContext += `\n\nConteúdo extraído do link ${url}:\n\n${pageText}`
       }
     }
+
+    // ✅ NOVO — busca na web se não tiver link e detectar gatilho
+    let webContext = ''
+    if (!linkContext && precisaBusca(lastText)) {
+      webContext = await buscarNaWeb(lastText)
+    }
+
+    const contextoExtra = linkContext || webContext
 
     const apiMessages = messages.map((m: any, index: number) => {
       const isLastMessage = index === messages.length - 1
 
-      if (isLastMessage && linkContext) {
+      if (isLastMessage && contextoExtra) {
         if (typeof m.content === 'string') {
           return {
             role: m.role,
-            content: `${m.content}
-
-${linkContext}`
+            content: `${m.content}\n\n${contextoExtra}`
           }
         }
-
         if (Array.isArray(m.content)) {
           return {
             role: m.role,
             content: [
               ...m.content,
-              {
-                type: 'text',
-                text: linkContext
-              }
+              { type: 'text', text: contextoExtra }
             ]
           }
         }
       }
 
-      return {
-        role: m.role,
-        content: m.content
-      }
+      return { role: m.role, content: m.content }
     })
 
     const stream = await anthropic.messages.stream({
@@ -182,12 +206,10 @@ ${linkContext}`
       new ReadableStream({
         async start(controller) {
           let fullText = ''
-
           try {
             for await (const chunk of stream) {
               if (chunk.type === 'content_block_delta') {
                 const delta = chunk.delta
-
                 if (delta.type === 'text_delta') {
                   const text = delta.text
                   fullText += text
@@ -198,31 +220,20 @@ ${linkContext}`
 
             if (conversation_id) {
               const supabase = getSupabase()
-
               const userContent =
                 typeof lastUserMsg.content === 'string'
                   ? lastUserMsg.content
                   : JSON.stringify(lastUserMsg.content)
 
               await supabase.from('messages').insert([
-                {
-                  conversation_id,
-                  role: 'user',
-                  content: userContent
-                },
-                {
-                  conversation_id,
-                  role: 'assistant',
-                  content: fullText
-                }
+                { conversation_id, role: 'user', content: userContent },
+                { conversation_id, role: 'assistant', content: fullText }
               ])
             }
 
             controller.close()
           } catch (error: any) {
-            controller.enqueue(
-              encoder.encode(`Erro ao gerar resposta: ${error.message}`)
-            )
+            controller.enqueue(encoder.encode(`Erro ao gerar resposta: ${error.message}`))
             controller.close()
           }
         }
@@ -235,20 +246,13 @@ ${linkContext}`
       }
     )
   } catch (error: any) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message
-      },
-      { status: 500 }
-    )
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }
 
 export async function GET() {
   try {
     const supabase = getSupabase()
-
     const { data, error } = await supabase
       .from('conversations')
       .select('*')
@@ -256,18 +260,8 @@ export async function GET() {
       .limit(20)
 
     if (error) throw error
-
-    return NextResponse.json({
-      success: true,
-      conversations: data
-    })
+    return NextResponse.json({ success: true, conversations: data })
   } catch (error: any) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message
-      },
-      { status: 500 }
-    )
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }
