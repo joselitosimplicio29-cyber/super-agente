@@ -1,1 +1,1 @@
-﻿export default function AgendaPage() { return null }
+export default function AgendaPage() { return null }
