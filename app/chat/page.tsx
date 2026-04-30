@@ -551,7 +551,7 @@ export default function ChatPage() {
 
                 {msg.role === 'assistant' && !msg.isImage && msg.content && (
                   <>
-                    {code && <CodePreview code={code} filename="Componente.jsx" />}
+                    {code && <CodePreview code={code} />}
 
                     <button
                       onClick={() => navigator.clipboard.writeText(msg.content)}
