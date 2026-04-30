@@ -283,29 +283,29 @@ export default function ChatPage() {
       display: 'flex',
       flexDirection: 'column',
       height: '100vh',
-      background: '#0F172A',
-      fontFamily: "'Montserrat', sans-serif",
-      color: '#F8FAFC',
+      background: '#FAFAF7',
+      fontFamily: "'Inter', system-ui, sans-serif",
+      color: '#2C2C2A',
       overflow: 'hidden'
     }}>
       <div style={{
-        padding: '12px 20px 12px 70px',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        padding: '14px 20px',
+        borderBottom: '0.5px solid #E5E3DC',
         display: 'flex',
         alignItems: 'center',
         gap: 12,
-        background: 'rgba(255,255,255,0.01)',
+        background: '#FFFFFF',
         flexShrink: 0
       }}>
         <div style={{
           width: 8,
           height: 8,
           borderRadius: '50%',
-          background: '#10B981'
+          background: '#1D9E75'
         }} />
 
-        <span style={{ color: '#64748B', fontSize: 13 }}>
-          Claude Sonnet + Cloudflare AI
+        <span style={{ color: '#5F5E5A', fontSize: 13 }}>
+          Claude Opus 4.7
         </span>
 
         <div style={{
@@ -322,11 +322,11 @@ export default function ChatPage() {
               )
             }
             style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              background: '#FFFFFF',
+              border: '0.5px solid #E5E3DC',
               borderRadius: 8,
               padding: '6px 10px',
-              color: '#F8FAFC',
+              color: '#2C2C2A',
               fontSize: 12,
               outline: 'none'
             }}
@@ -347,11 +347,11 @@ export default function ChatPage() {
             style={{
               padding: '6px 12px',
               borderRadius: 8,
-              border: '1px solid rgba(245,158,11,0.3)',
-              background: 'rgba(245,158,11,0.08)',
-              color: '#F59E0B',
-              fontSize: 11,
-              fontWeight: 700,
+              border: '0.5px solid #E5E3DC',
+              background: '#FFFFFF',
+              color: '#2C2C2A',
+              fontSize: 12,
+              fontWeight: 400,
               cursor: 'pointer',
               fontFamily: 'inherit'
             }}
@@ -364,10 +364,10 @@ export default function ChatPage() {
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        padding: '24px 20px',
+        padding: '24px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 20
+        gap: 24
       }}>
         {messages.length === 0 && (
           <div style={{
@@ -380,10 +380,10 @@ export default function ChatPage() {
           }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>⚡</div>
-              <div style={{ color: '#F8FAFC', fontWeight: 700, fontSize: 22 }}>
+              <div style={{ color: '#2C2C2A', fontWeight: 500, fontSize: 22 }}>
                 Super Agente
               </div>
-              <div style={{ color: '#475569', fontSize: 13, marginTop: 4 }}>
+              <div style={{ color: '#5F5E5A', fontSize: 13, marginTop: 4 }}>
                 Como posso ajudar hoje?
               </div>
             </div>
@@ -405,26 +405,28 @@ export default function ChatPage() {
                     }
                   }}
                   style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    background: '#FFFFFF',
+                    border: '0.5px solid #E5E3DC',
                     borderRadius: 12,
                     padding: '14px 10px',
                     cursor: 'pointer',
                     textAlign: 'center',
                     fontFamily: 'inherit'
                   }}
+                  onMouseOver={e => e.currentTarget.style.borderColor = '#B4B2A9'}
+                  onMouseOut={e => e.currentTarget.style.borderColor = '#E5E3DC'}
                 >
                   <div style={{ fontSize: 20, marginBottom: 6 }}>{m.icon}</div>
                   <div style={{
-                    color: '#F8FAFC',
-                    fontSize: 12,
-                    fontWeight: 600
+                    color: '#2C2C2A',
+                    fontSize: 13,
+                    fontWeight: 500
                   }}>
                     {m.label}
                   </div>
                   <div style={{
-                    color: '#475569',
-                    fontSize: 10,
+                    color: '#888780',
+                    fontSize: 11,
                     marginTop: 2
                   }}>
                     {m.sub}
@@ -440,10 +442,7 @@ export default function ChatPage() {
             ? extractCode(msg.content)
             : null
 
-          // Texto sem o bloco de código (evita duplicar)
           const textWithoutCode = code ? stripCode(msg.content) : msg.content
-
-          // Se tem código, o balão fica largo pra acomodar o split-screen
           const hasCode = !!code
 
           return (
@@ -458,15 +457,16 @@ export default function ChatPage() {
             >
               {msg.role === 'assistant' && (
                 <div style={{
-                  width: 32,
-                  height: 32,
+                  width: 28,
+                  height: 28,
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #1E3A8A, #F59E0B)',
+                  background: '#BA7517',
+                  color: '#FFFFFF',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 13,
-                  fontWeight: 700,
+                  fontSize: 14,
+                  fontWeight: 500,
                   flexShrink: 0
                 }}>
                   S
@@ -474,21 +474,23 @@ export default function ChatPage() {
               )}
 
               <div style={{
-                maxWidth: hasCode ? '95%' : '75%',
+                maxWidth: msg.role === 'user' ? '75%' : (hasCode ? '100%' : 'auto'),
                 width: hasCode ? '100%' : 'auto',
                 background: msg.role === 'user'
-                  ? '#1E3A8A'
-                  : 'rgba(255,255,255,0.04)',
-                border: msg.role === 'assistant'
-                  ? '1px solid rgba(255,255,255,0.08)'
+                  ? '#F1EFE8'
+                  : (hasCode ? '#FFFFFF' : 'transparent'),
+                border: (msg.role === 'assistant' && hasCode)
+                  ? '0.5px solid #E5E3DC'
                   : 'none',
                 borderRadius: msg.role === 'user'
-                  ? '14px 14px 4px 14px'
-                  : '4px 14px 14px 14px',
-                padding: '12px 16px',
-                fontSize: 13,
+                  ? '12px'
+                  : (hasCode ? '8px' : '0px'),
+                padding: msg.role === 'user'
+                  ? '10px 14px'
+                  : (hasCode ? '12px 14px' : '0'),
+                fontSize: 14,
                 lineHeight: 1.7,
-                color: '#E2E8F0',
+                color: '#2C2C2A',
                 whiteSpace: 'pre-wrap'
               }}>
                 {msg.preview && (
@@ -498,7 +500,7 @@ export default function ChatPage() {
                     style={{
                       width: '100%',
                       maxWidth: 400,
-                      borderRadius: 10,
+                      borderRadius: 8,
                       marginBottom: 8,
                       display: 'block'
                     }}
@@ -510,13 +512,14 @@ export default function ChatPage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: 8,
-                    background: 'rgba(255,255,255,0.08)',
+                    background: '#FFFFFF',
+                    border: '0.5px solid #E5E3DC',
                     borderRadius: 8,
-                    padding: '8px 12px',
+                    padding: '12px 14px',
                     marginBottom: 8
                   }}>
                     <span style={{ fontSize: 20 }}>📄</span>
-                    <span style={{ fontSize: 12 }}>{msg.fileName}</span>
+                    <span style={{ fontSize: 12, color: '#2C2C2A' }}>{msg.fileName}</span>
                   </div>
                 )}
 
@@ -530,14 +533,16 @@ export default function ChatPage() {
                       style={{
                         display: 'inline-block',
                         marginTop: 8,
-                        padding: '6px 14px',
+                        padding: '5px 10px',
                         borderRadius: 8,
-                        background: 'rgba(245,158,11,0.2)',
-                        border: '1px solid rgba(245,158,11,0.4)',
-                        color: '#F59E0B',
+                        background: '#FFFFFF',
+                        border: '0.5px solid #E5E3DC',
+                        color: '#444441',
                         fontSize: 12,
                         textDecoration: 'none'
                       }}
+                      onMouseOver={e => e.currentTarget.style.background = '#F1EFE8'}
+                      onMouseOut={e => e.currentTarget.style.background = '#FFFFFF'}
                     >
                       ⬇️ Baixar imagem
                     </a>
@@ -551,16 +556,20 @@ export default function ChatPage() {
                     <button
                       onClick={() => navigator.clipboard.writeText(msg.content)}
                       style={{
-                        marginTop: 8,
-                        padding: '4px 10px',
-                        borderRadius: 6,
-                        border: '1px solid #333',
-                        background: 'rgba(255,255,255,0.06)',
-                        color: '#E2E8F0',
+                        marginTop: 12,
+                        padding: '5px 10px',
+                        borderRadius: 8,
+                        border: '0.5px solid #E5E3DC',
+                        background: '#FFFFFF',
+                        color: '#444441',
                         cursor: 'pointer',
                         fontSize: 12,
-                        fontFamily: 'inherit'
+                        fontWeight: 400,
+                        fontFamily: 'inherit',
+                        display: 'block'
                       }}
+                      onMouseOver={e => e.currentTarget.style.background = '#F1EFE8'}
+                      onMouseOut={e => e.currentTarget.style.background = '#FFFFFF'}
                     >
                       Copiar resposta
                     </button>
@@ -575,19 +584,20 @@ export default function ChatPage() {
           !messages.find(m => m.role === 'assistant' && m.content === '') && (
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <div style={{
-                width: 32,
-                height: 32,
+                width: 28,
+                height: 28,
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #1E3A8A, #F59E0B)',
+                background: '#BA7517',
+                color: '#FFFFFF',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 13,
-                fontWeight: 700
+                fontSize: 14,
+                fontWeight: 500
               }}>
                 S
               </div>
-              <div style={{ color: '#475569', fontSize: 13 }}>
+              <div style={{ color: '#888780', fontSize: 14 }}>
                 {gerandoImagem ? '🎨 Gerando imagem...' : 'Pensando...'}
               </div>
             </div>
@@ -598,7 +608,8 @@ export default function ChatPage() {
 
       <div style={{
         padding: '14px 20px',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
+        borderTop: '0.5px solid #E5E3DC',
+        background: '#FFFFFF',
         flexShrink: 0
       }}>
         {(preview || arquivo) && (
@@ -607,8 +618,9 @@ export default function ChatPage() {
             display: 'flex',
             alignItems: 'center',
             gap: 10,
-            background: 'rgba(255,255,255,0.04)',
-            borderRadius: 10,
+            background: '#FAFAF7',
+            border: '0.5px solid #E5E3DC',
+            borderRadius: 8,
             padding: '8px 12px'
           }}>
             {preview ? (
@@ -628,7 +640,7 @@ export default function ChatPage() {
 
             <span style={{
               fontSize: 12,
-              color: '#94A3B8',
+              color: '#5F5E5A',
               flex: 1
             }}>
               {arquivo?.name}
@@ -637,15 +649,17 @@ export default function ChatPage() {
             <button
               onClick={removerArquivo}
               style={{
-                background: 'rgba(220,38,38,0.2)',
+                background: 'transparent',
                 border: 'none',
-                color: '#FCA5A5',
+                color: '#888780',
                 borderRadius: 6,
                 padding: '4px 10px',
                 fontSize: 12,
                 cursor: 'pointer',
                 fontFamily: 'inherit'
               }}
+              onMouseOver={e => e.currentTarget.style.color = '#2C2C2A'}
+              onMouseOut={e => e.currentTarget.style.color = '#888780'}
             >
               ✕
             </button>
@@ -661,22 +675,25 @@ export default function ChatPage() {
         />
 
         <div style={{
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 14,
+          background: '#FAFAF7',
+          border: '0.5px solid #E5E3DC',
+          borderRadius: 12,
           padding: '10px 14px',
           display: 'flex',
           alignItems: 'center',
           gap: 10
-        }}>
+        }}
+        onFocus={e => e.currentTarget.style.borderColor = '#B4B2A9'}
+        onBlur={e => e.currentTarget.style.borderColor = '#E5E3DC'}
+        >
           <button
             onClick={() => fileRef.current?.click()}
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#475569',
+              color: '#888780',
               cursor: 'pointer',
-              fontSize: 20,
+              fontSize: 18,
               padding: '0 4px'
             }}
             title="Anexar"
@@ -700,7 +717,7 @@ export default function ChatPage() {
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              color: '#F8FAFC',
+              color: '#2C2C2A',
               fontSize: 14,
               fontFamily: 'inherit',
               resize: 'none',
@@ -712,21 +729,31 @@ export default function ChatPage() {
             onClick={enviar}
             disabled={loading || gerandoImagem || (!input.trim() && !arquivo)}
             style={{
-              width: 36,
-              height: 36,
+              width: 30,
+              height: 30,
               borderRadius: '50%',
               background: loading || gerandoImagem || (!input.trim() && !arquivo)
-                ? 'rgba(255,255,255,0.08)'
-                : '#F59E0B',
+                ? '#D3D1C7'
+                : '#2C2C2A',
               border: 'none',
-              color: '#000',
-              fontSize: 16,
-              cursor: 'pointer',
+              color: '#FFFFFF',
+              fontSize: 14,
+              cursor: loading || gerandoImagem || (!input.trim() && !arquivo) ? 'default' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontWeight: 700,
+              fontWeight: 400,
               flexShrink: 0
+            }}
+            onMouseOver={e => {
+              if (!loading && !gerandoImagem && (input.trim() || arquivo)) {
+                e.currentTarget.style.background = '#444441'
+              }
+            }}
+            onMouseOut={e => {
+              if (!loading && !gerandoImagem && (input.trim() || arquivo)) {
+                e.currentTarget.style.background = '#2C2C2A'
+              }
             }}
           >
             →
@@ -735,11 +762,11 @@ export default function ChatPage() {
 
         <div style={{
           textAlign: 'center',
-          color: '#334155',
-          fontSize: 10,
+          color: '#888780',
+          fontSize: 11,
           marginTop: 8
         }}>
-          Enter para enviar · Shift+Enter para nova linha · 📎 para imagem ou PDF
+          Enter para enviar...
         </div>
       </div>
     </div>
