@@ -16,7 +16,7 @@ export async function GET() {
     const supabase = getSupabase()
 
     const { data, error } = await supabase
-      .from('clientes')
+      .from('clients')
       .select('*')
       .order('nome', { ascending: true })
 
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     const supabase = getSupabase()
 
     const { data, error } = await supabase
-      .from('clientes')
+      .from('clients')
       .insert([
         {
           nome,
