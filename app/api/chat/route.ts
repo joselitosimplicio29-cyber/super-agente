@@ -247,7 +247,6 @@ Nunca diga que não consegue gerar imagens.
     const stream = await anthropic.messages.stream({
       model: 'claude-opus-4-7',
       max_tokens: 4000,
-      temperature: 0.7,
       system: systemPrompt,
       messages: apiMessages
     })
