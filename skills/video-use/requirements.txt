@@ -1,0 +1,5 @@
+# Dependências essenciais para a skill video-use
+ffmpeg-python
+pillow
+requests
+tqdm

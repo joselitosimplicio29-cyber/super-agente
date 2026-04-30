@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import CodePreview from '../components/CodePreview'
+import MarkdownRenderer from '../components/MarkdownRenderer'
 
 function extractCode(text: string) {
   const match = text.match(/```(?:jsx|tsx|js|javascript|react)?\n([\s\S]*?)```/)
@@ -491,7 +492,7 @@ export default function ChatPage() {
                 fontSize: 14,
                 lineHeight: 1.7,
                 color: '#2C2C2A',
-                whiteSpace: 'pre-wrap'
+                whiteSpace: msg.role === 'user' ? 'pre-wrap' : 'normal'
               }}>
                 {msg.preview && (
                   <img
@@ -523,7 +524,10 @@ export default function ChatPage() {
                   </div>
                 )}
 
-                {!msg.isImage && textWithoutCode}
+                {!msg.isImage && msg.role === 'assistant' && textWithoutCode && (
+                  <MarkdownRenderer>{textWithoutCode}</MarkdownRenderer>
+                )}
+                {!msg.isImage && msg.role === 'user' && textWithoutCode}
 
                 {msg.isImage && (
                   <div style={{ marginTop: 4 }}>
