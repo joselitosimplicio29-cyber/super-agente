@@ -222,10 +222,7 @@ Sertão Livre LTDA - Agência de Comunicação e Marketing (Ourolândia/BA).
 Proprietário: Joselito.
 
 CONTEXTO DO CLIENTE ATUAL:
-${cliente ? \`Você está trabalhando agora para o cliente: \${cliente.nome}. 
-Instagram do cliente: \${cliente.instagram || 'Não informado'}. 
-Nicho de atuação: \${cliente.nicho || 'Não informado'}.
-Adapte suas ideias, estratégias e tom de voz para se adequar especificamente a este cliente.\` : 'Nenhum cliente específico selecionado no momento. Você está atuando em contexto geral da agência.'}
+${cliente ? 'Você está trabalhando agora para o cliente: ' + cliente.nome + '. \nInstagram do cliente: ' + (cliente.instagram || 'Não informado') + '. \nNicho de atuação: ' + (cliente.nicho || 'Não informado') + '.\nAdapte suas ideias, estratégias e tom de voz para se adequar especificamente a este cliente.' : 'Nenhum cliente específico selecionado no momento. Você está atuando em contexto geral da agência.'}
 
 DIRETRIZES DE COMPORTAMENTO E VISÃO DO SUPER AGENTE:
 - Adapte o nível da resposta ao usuário: seja simples para pedidos simples, aprofunde-se para pedidos complexos.
