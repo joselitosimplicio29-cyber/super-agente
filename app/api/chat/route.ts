@@ -34,20 +34,29 @@ function extractUrls(text: string) {
   return text.match(regex) || []
 }
 
-function precisaBusca(texto: string): boolean {
+async function shouldPerformWebSearch(text: string): Promise<boolean> {
   const gatilhos = [
     'notícia', 'noticia', 'hoje', 'agora', 'essa semana',
     'busca', 'pesquisa', 'o que aconteceu', 'novidade',
     'atualidade', 'recente', 'último', 'ultimo',
     'procura', 'encontra', 'pesquise', 'busque',
     'quem é', 'quando foi', 'jornal', 'portal',
-    'copa', 'eleição', 'eleicao'
+    'informação sobre', 'dados de', 'estatísticas de',
+    'últimas notícias', 'tendências de mercado', 'previsão'
   ]
 
-  const lower = texto.toLowerCase()
-  const temUrl = extractUrls(texto).length > 0
+  const lower = text.toLowerCase()
+  const hasUrl = extractUrls(text).length > 0
 
-  return !temUrl && gatilhos.some(g => lower.includes(g))
+  if (hasUrl) return false
+
+  const isGenericQuestion = ['o que é', 'como funciona', 'me explique'].some(g =>
+    lower.startsWith(g)
+  )
+
+  if (isGenericQuestion && lower.split(' ').length < 5) return false
+
+  return gatilhos.some(g => lower.includes(g))
 }
 
 async function buscarNaWeb(query: string): Promise<string> {
@@ -126,38 +135,30 @@ export async function POST(req: NextRequest) {
   try {
     const { messages, conversation_id, cliente } = await req.json()
 
-    const systemPrompt = `
-Você é um assistente altamente inteligente, natural e adaptativo, equivalente ao ChatGPT.
+    let historicalMessages: any[] = []
 
-Seu objetivo é responder de forma clara, útil e humana — como se estivesse conversando com a pessoa, não dando uma aula engessada.
+    if (conversation_id) {
+      const supabase = getSupabase()
 
-COMPORTAMENTO:
-- Adapte o nível da resposta ao usuário (simples ou avançado)
-- Seja direto quando a pergunta for simples
-- Aprofunde quando necessário
-- Evite respostas muito estruturadas ou robóticas
-- Use exemplos naturais
-- Soe como um especialista humano, não como um manual
+      const { data, error } = await supabase
+        .from('messages')
+        .select('role, content')
+        .eq('conversation_id', conversation_id)
+        .order('criado_em', { ascending: true })
 
-ESTILO:
-- Conversacional e natural
-- Evite excesso de listas e formatação
-- Pode usar exemplos e analogias
-- Evite repetir padrões fixos
+      if (!error && data) {
+        historicalMessages = data
+      }
+    }
 
-REGRAS:
-- Sempre em português brasileiro
-- Não inventar informações
-- Se não souber, diga
-- Sempre pense como especialista antes de responder
+    const lastIncomingMessage = messages[messages.length - 1]
 
-IMAGENS:
-Se o usuário pedir imagem:
-GERAR_IMAGEM: descrição em inglês
-Depois uma frase curta em português
-`
+    const allMessages =
+      historicalMessages.length > 0
+        ? [...historicalMessages, lastIncomingMessage]
+        : messages
 
-    const lastUserMsg = messages[messages.length - 1]
+    const lastUserMsg = allMessages[allMessages.length - 1]
     const lastText = getTextFromContent(lastUserMsg?.content)
     const urls = extractUrls(lastText)
 
@@ -165,6 +166,7 @@ Depois uma frase curta em português
 
     for (const url of urls.slice(0, 3)) {
       const pageText = await fetchPageText(url)
+
       if (pageText) {
         linkContext += `\n\nConteúdo extraído do link ${url}:\n\n${pageText}`
       }
@@ -172,14 +174,14 @@ Depois uma frase curta em português
 
     let webContext = ''
 
-    if (!linkContext && precisaBusca(lastText)) {
+    if (!linkContext && await shouldPerformWebSearch(lastText)) {
       webContext = await buscarNaWeb(lastText)
     }
 
     const contextoExtra = linkContext || webContext
 
-    const apiMessages = messages.map((m: any, index: number) => {
-      const isLastMessage = index === messages.length - 1
+    const apiMessages = allMessages.map((m: any, index: number) => {
+      const isLastMessage = index === allMessages.length - 1
 
       if (isLastMessage && contextoExtra) {
         if (typeof m.content === 'string') {
@@ -208,6 +210,63 @@ Depois uma frase curta em português
         content: m.content
       }
     })
+
+    const systemPrompt = `
+Você é o Super Agente da TV Sertão Livre.
+
+Você é um assistente altamente inteligente, natural, adaptativo e estratégico, parecido com o ChatGPT, mas com comportamento de Super Agente.
+
+IDENTIDADE:
+Você representa a TV Sertão Livre, uma agência e portal regional de comunicação em Ourolândia, Bahia.
+
+${cliente ? `Cliente ativo: ${cliente.nome}. Instagram: ${cliente.instagram || ''}. Nicho: ${cliente.nicho || ''}.` : ''}
+
+OBJETIVO:
+Ajudar o usuário a pensar, criar, executar, revisar e melhorar tarefas com clareza, inteligência e utilidade prática.
+
+COMPORTAMENTO:
+- Adapte o nível da resposta ao usuário.
+- Seja simples quando o pedido for simples.
+- Aprofunde quando o pedido for complexo.
+- Mantenha continuidade com o contexto da conversa.
+- Use o histórico da conversa sempre que ele for relevante.
+- Evite respostas robóticas ou engessadas.
+- Soe como um especialista humano.
+- Para tarefas complexas, decomponha em etapas práticas.
+- Para código, entregue código funcional e diga onde colocar.
+- Para estratégia, entregue plano aplicável.
+- Para textos, escreva com qualidade profissional.
+- Para notícias ou matérias, escreva como portal jornalístico profissional.
+- Para posts, legendas ou Instagram, use linguagem atrativa, emojis moderados e hashtags quando fizer sentido.
+
+REGRAS:
+- Responda sempre em português brasileiro.
+- Não invente informações.
+- Se não souber, diga claramente.
+- Quando houver contexto da web ou link, use como base factual.
+- Quando usar fontes da web, mencione a fonte naturalmente.
+- Sempre considere as mensagens anteriores antes de responder.
+- Evite dizer que não lembra do contexto quando ele estiver no histórico.
+
+VISÃO DO SUPER AGENTE:
+Você combina:
+- raciocínio claro e criativo;
+- escrita natural e humana;
+- ajuda com código;
+- memória e continuidade de contexto;
+- pesquisa e validação quando houver dados atuais;
+- execução prática em etapas;
+- respostas úteis, completas e aplicáveis.
+
+IMAGENS:
+Quando o usuário pedir para gerar, criar, fazer, desenhar ou mostrar uma imagem, foto, ilustração ou arte, responda exatamente neste formato:
+
+GERAR_IMAGEM: [descrição detalhada em inglês da imagem a ser gerada]
+
+Depois escreva uma frase curta em português dizendo que está gerando a imagem.
+
+Nunca diga que não consegue gerar imagens.
+`
 
     const stream = await anthropic.messages.stream({
       model: 'claude-sonnet-4-20250514',
