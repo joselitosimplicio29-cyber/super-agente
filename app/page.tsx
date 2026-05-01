@@ -273,744 +273,250 @@ export default function HomePage() {
   return (
     <div className="app">
       <style>{`
-        * {
-          box-sizing: border-box;
-        }
-
-        body {
-          margin: 0;
-          background: #FAFAF7;
-        }
-
-        .app {
-          min-height: 100vh;
-          display: flex;
-          background: #FAFAF7;
-          color: #2C2C2A;
-          font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        }
-
-        .sidebar {
-          width: 260px;
-          background: #FFFFFF;
-          border-right: 0.5px solid #E5E3DC;
-          display: flex;
-          flex-direction: column;
-          padding: 22px 18px;
-          flex-shrink: 0;
-        }
-
-        .brand {
-          margin-bottom: 28px;
-        }
-
-        .brandTitle {
-          color: #2C2C2A;
-          font-size: 22px;
-          font-weight: 500;
-          letter-spacing: -.02em;
-        }
-
-        .brandSub {
-          color: #5F5E5A;
-          font-size: 13px;
-          margin-top: 4px;
-        }
-
-        .newChat {
-          border: 0.5px solid #E5E3DC;
-          background: #FFFFFF;
-          color: #2C2C2A;
-          border-radius: 8px;
-          padding: 10px 14px;
-          font-weight: 400;
-          cursor: pointer;
-          margin-bottom: 16px;
-          transition: background 0.2s;
-        }
-        .newChat:hover {
-          background: #F1EFE8;
-        }
-
-        .clientLabel {
-          color: #888780;
-          font-size: 11px;
-          letter-spacing: .05em;
-          text-transform: uppercase;
-          font-weight: 500;
-          margin-bottom: 8px;
-        }
-
-        .clientSelect {
-          width: 100%;
-          background: #FFFFFF;
-          color: #2C2C2A;
-          border: 0.5px solid #E5E3DC;
-          border-radius: 8px;
-          padding: 10px;
-          margin-bottom: 16px;
-          outline: none;
-        }
-
-        .menu {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .menuItem {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 10px 14px;
-          border-radius: 8px;
-          color: #5F5E5A;
-          font-size: 14px;
-          cursor: pointer;
-        }
-
-        .menuItem.active {
-          background: #F1EFE8;
-          color: #2C2C2A;
-        }
-
-        .menuItem:hover:not(.active) {
-          background: #FAFAF7;
-          color: #2C2C2A;
-        }
-
-        .main {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          min-width: 0;
-        }
-
-        .topbar {
-          height: 60px;
-          border-bottom: 0.5px solid #E5E3DC;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 0 24px;
-          background: #FFFFFF;
-        }
-
-        .status {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: #5F5E5A;
-          font-size: 13px;
-        }
-
-        .dot {
-          width: 8px;
-          height: 8px;
-          background: #1D9E75;
-          border-radius: 999px;
-        }
-
-        .clientBadge {
-          color: #BA7517;
-          background: #FFFFFF;
-          border: 0.5px solid #E5E3DC;
-          padding: 6px 12px;
-          border-radius: 8px;
-          font-size: 13px;
-          font-weight: 500;
-        }
-
-        .content {
-          flex: 1;
-          overflow-y: auto;
-          padding: 34px 24px 20px;
-        }
-
-        .chatContainer {
-          width: 100%;
-          max-width: 760px;
+        .page-container {
+          padding: 40px 24px;
+          max-width: 1000px;
           margin: 0 auto;
-          min-height: 100%;
+          width: 100%;
         }
 
-        .hero {
-          min-height: calc(100vh - 220px);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
+        .hero-section {
           text-align: center;
+          margin-bottom: 60px;
+          padding-top: 40px;
         }
 
-        .heroLogo {
-          font-size: 36px;
-          margin-bottom: 8px;
+        .hero-title {
+          font-size: 42px;
+          font-weight: 800;
+          letter-spacing: -0.04em;
+          background: linear-gradient(to right, #F8FAFC, #10B981);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          margin-bottom: 12px;
         }
 
-        .heroTitle {
-          font-size: 22px;
-          font-weight: 500;
-          color: #2C2C2A;
+        .hero-subtitle {
+          color: #94A3B8;
+          font-size: 16px;
+          max-width: 500px;
+          margin: 0 auto;
         }
 
-        .heroText {
-          margin-top: 4px;
-          color: #5F5E5A;
-          font-size: 13px;
-        }
-
-        .shortcutGrid {
-          margin-top: 34px;
+        .shortcut-grid {
           display: grid;
-          grid-template-columns: repeat(2, minmax(240px, 1fr));
-          gap: 10px;
-          width: 100%;
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+          gap: 16px;
+          margin-top: 40px;
         }
 
-        .shortcut {
-          text-align: left;
-          background: #FFFFFF;
-          border: 0.5px solid #E5E3DC;
-          border-radius: 12px;
-          padding: 14px 10px;
-          color: #2C2C2A;
+        .shortcut-card {
+          background: rgba(15, 23, 42, 0.4);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: 20px;
+          padding: 24px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           cursor: pointer;
-          transition: border-color 0.2s;
+          position: relative;
+          overflow: hidden;
         }
 
-        .shortcut:hover {
-          border-color: #B4B2A9;
+        .shortcut-card:hover {
+          background: rgba(16, 185, 129, 0.05);
+          border-color: rgba(16, 185, 129, 0.2);
+          transform: translateY(-4px);
         }
 
-        .shortcutIcon {
-          font-size: 20px;
-          margin-bottom: 6px;
-        }
-
-        .shortcutTitle {
-          font-weight: 500;
-          color: #2C2C2A;
-          font-size: 13px;
-        }
-
-        .shortcutDesc {
-          color: #888780;
-          font-size: 11px;
-          margin-top: 2px;
-        }
-
-        .messageRow {
-          display: flex;
-          gap: 12px;
-          margin-bottom: 24px;
-        }
-
-        .messageRow.user {
-          justify-content: flex-end;
-        }
-
-        .avatar {
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          background: #BA7517;
-          color: #FFFFFF;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 500;
-          font-size: 14px;
-          flex-shrink: 0;
-        }
-
-        .bubble {
-          max-width: 75%;
-          font-size: 14px;
-          line-height: 1.7;
-          word-break: break-word;
-        }
-
-        .bubble.user {
-          background: #F1EFE8;
-          color: #2C2C2A;
-          padding: 10px 14px;
-          border-radius: 12px;
-        }
-
-        .bubble.assistant {
-          background: transparent;
-          border: none;
-          color: #2C2C2A;
-          max-width: 100%;
-          padding: 0;
-        }
-
-        .markdown p {
-          margin: 0 0 14px;
-        }
-
-        .markdown p:last-child {
-          margin-bottom: 0;
-        }
-
-        .markdown h1,
-        .markdown h2,
-        .markdown h3 {
-          margin: 18px 0 10px;
-          color: #2C2C2A;
-          font-weight: 500;
-        }
-
-        .markdown ul,
-        .markdown ol {
-          padding-left: 20px;
-          margin: 10px 0;
-        }
-
-        .markdown strong {
-          color: #2C2C2A;
-          font-weight: 500;
-        }
-
-        .markdown code {
-          background: #F1EFE8;
-          padding: 2px 6px;
-          border-radius: 4px;
-        }
-
-        .copyBtn {
-          margin-top: 12px;
-          border: 0.5px solid #E5E3DC;
-          background: #FFFFFF;
-          color: #444441;
-          padding: 5px 10px;
-          border-radius: 8px;
-          cursor: pointer;
-          font-size: 12px;
-          font-weight: 400;
-        }
-
-        .copyBtn:hover {
-          background: #F1EFE8;
-        }
-
-        .typing {
-          display: flex;
-          gap: 5px;
-          padding: 10px 0;
-        }
-
-        .typing span {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #888780;
-          animation: pulse 1s infinite ease-in-out;
-        }
-
-        .typing span:nth-child(2) {
-          animation-delay: .15s;
-        }
-
-        .typing span:nth-child(3) {
-          animation-delay: .3s;
-        }
-
-        .inputBar {
-          border-top: 0.5px solid #E5E3DC;
-          padding: 14px 20px;
-          background: #FFFFFF;
-        }
-
-        .inputWrap {
-          max-width: 760px;
-          margin: 0 auto;
-        }
-
-        .previewBox {
-          margin-bottom: 10px;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          background: #FAFAF7;
-          border: 0.5px solid #E5E3DC;
-          border-radius: 8px;
-          padding: 8px 12px;
-        }
-
-        .previewImg {
-          width: 48px;
-          height: 48px;
-          object-fit: cover;
-          border-radius: 6px;
-        }
-
-        .previewName {
-          flex: 1;
-          color: #5F5E5A;
-          font-size: 12px;
-        }
-
-        .removeBtn {
-          border: none;
-          background: transparent;
-          color: #888780;
-          padding: 4px 10px;
-          font-size: 12px;
-          cursor: pointer;
-        }
-        .removeBtn:hover {
-          color: #2C2C2A;
-        }
-
-        .composer {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          background: #FAFAF7;
-          border: 0.5px solid #E5E3DC;
-          border-radius: 12px;
-          padding: 10px 14px;
-        }
-        .composer:focus-within {
-          border-color: #B4B2A9;
-        }
-
-        .attachBtn {
-          width: auto;
-          height: auto;
-          border: none;
-          background: transparent;
-          color: #888780;
-          cursor: pointer;
-          font-size: 18px;
-          padding: 0 4px;
-        }
-
-        .attachBtn:hover {
-          color: #2C2C2A;
-        }
-
-        textarea {
-          flex: 1;
-          border: none;
-          outline: none;
-          background: transparent;
-          color: #2C2C2A;
-          resize: none;
-          min-height: 24px;
-          max-height: 160px;
-          padding: 0;
-          font-family: inherit;
-          font-size: 14px;
-          line-height: 1.5;
-        }
-
-        textarea::placeholder {
-          color: #888780;
-        }
-
-        .sendBtn {
-          width: 30px;
-          height: 30px;
-          border-radius: 50%;
-          border: none;
-          background: #2C2C2A;
-          color: #FFFFFF;
-          font-size: 14px;
-          font-weight: 400;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .sendBtn:hover:not(:disabled) {
-          background: #444441;
-        }
-
-        .sendBtn:disabled {
-          background: #D3D1C7;
-          cursor: default;
-        }
-
-        .hint {
-          margin-top: 8px;
-          text-align: center;
-          color: #888780;
-          font-size: 11px;
-        }
-
-        .fileBox {
-          background: #FFFFFF;
-          border: 0.5px solid #E5E3DC;
-          border-radius: 8px;
-          padding: 12px 14px;
-          margin-bottom: 8px;
-          color: #2C2C2A;
-          font-size: 12px;
-        }
-
-        .attachedImage {
-          max-width: 400px;
-          width: 100%;
-          border-radius: 8px;
-          margin-bottom: 8px;
+        .shortcut-icon {
+          font-size: 24px;
+          margin-bottom: 16px;
           display: block;
         }
 
-        @keyframes pulse {
-          0%, 80%, 100% {
-            opacity: .3;
-            transform: translateY(0);
-          }
-          40% {
-            opacity: 1;
-            transform: translateY(-4px);
+        .shortcut-title {
+          font-weight: 600;
+          color: #F8FAFC;
+          font-size: 15px;
+          margin-bottom: 8px;
+        }
+
+        .shortcut-desc {
+          color: #64748B;
+          font-size: 12px;
+          line-height: 1.5;
+        }
+
+        .chat-input-wrapper {
+          position: fixed;
+          bottom: 32px;
+          left: 300px; /* Sidebar width + gap */
+          right: 40px;
+          max-width: 800px;
+          margin: 0 auto;
+          z-index: 40;
+        }
+
+        @media (max-width: 1024px) {
+          .chat-input-wrapper {
+            left: 40px;
           }
         }
 
-        ::-webkit-scrollbar {
-          width: 8px;
+        .chat-input-container {
+          background: rgba(15, 23, 42, 0.8);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 24px;
+          padding: 8px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
         }
 
-        ::-webkit-scrollbar-thumb {
-          background: rgba(0,0,0,.15);
-          border-radius: 999px;
+        .chat-textarea {
+          flex: 1;
+          background: transparent;
+          border: none;
+          outline: none;
+          color: #F8FAFC;
+          padding: 12px;
+          resize: none;
+          font-size: 15px;
+          min-height: 44px;
+          max-height: 200px;
         }
 
-        @media (max-width: 900px) {
-          .sidebar {
-            display: none;
-          }
+        .action-btn {
+          width: 40px;
+          height: 40px;
+          border-radius: 14px;
+          border: none;
+          background: #10B981;
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
 
-          .shortcutGrid {
-            grid-template-columns: 1fr;
-          }
+        .action-btn:hover {
+          background: #059669;
+          transform: scale(1.05);
+        }
 
-          .bubble {
-            max-width: 90%;
-          }
+        .action-btn:disabled {
+          background: #334155;
+          cursor: not-allowed;
+        }
+
+        .message-row {
+          display: flex;
+          margin-bottom: 24px;
+          padding: 0 20px;
+        }
+        .message-row.user { justify-content: flex-end; }
+        .bubble {
+          max-width: 80%;
+          padding: 16px 20px;
+          border-radius: 20px;
+          line-height: 1.6;
+          font-size: 15px;
+        }
+        .message-row.user .bubble {
+          background: #10B981;
+          color: white;
+          border-bottom-right-radius: 4px;
+        }
+        .message-row.assistant .bubble {
+          background: rgba(255,255,255,0.05);
+          color: #F8FAFC;
+          border-bottom-left-radius: 4px;
+          border: 1px solid rgba(255,255,255,0.05);
         }
       `}</style>
 
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brandTitle">Super Agente</div>
-          <div className="brandSub">TV Sertão Livre</div>
+    <div className="page-container">
+      <div className="hero-section">
+        <div className="hero-title">Super Agente</div>
+        <p className="hero-subtitle">
+          Sua inteligência artificial para produção de conteúdo e gestão de agência.
+        </p>
+
+        <div className="shortcut-grid">
+          {atalhos.map((a, i) => (
+            <div key={i} className="shortcut-card" onClick={() => setInput(a.text)}>
+              <span className="shortcut-icon">{a.icon}</span>
+              <div className="shortcut-title">{a.title}</div>
+              <div className="shortcut-desc">{a.text}</div>
+            </div>
+          ))}
         </div>
+      </div>
 
-        <div className="clientLabel">Cliente ativo</div>
-
-        <select
-          className="clientSelect"
-          value={clienteSelecionado?.id || ''}
-          onChange={e => {
-            const cliente = clientes.find(c => c.id === e.target.value) || null
-            setClienteSelecionado(cliente)
-          }}
-        >
-          <option value="">Sem cliente</option>
-          {clientes.map(c => (
-            <option key={c.id} value={c.id}>
-              {c.nome}
-            </option>
-          ))}
-        </select>
-
-        <button
-          className="newChat"
-          onClick={() => {
-            setMessages([])
-            setInput('')
-            setConversationId(null)
-            removerArquivo()
-          }}
-        >
-          + Nova conversa
-        </button>
-
-        <nav className="menu">
-          {menu.map((item, index) => (
-            <div key={item.label} className={`menuItem ${index === 0 ? 'active' : ''}`}>
-              <span>{item.icon}</span>
-              <span>{item.label}</span>
-            </div>
-          ))}
-        </nav>
-      </aside>
-
-      <main className="main">
-        <header className="topbar">
-          <div className="status">
-            <span className="dot" />
-            <span>Claude Opus 4.7</span>
+      <div className="messages-list" style={{ paddingBottom: 120 }}>
+        {messages.map((m, i) => (
+          <div key={i} className={`message-row ${m.role}`}>
+             <div className="bubble">
+               <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                 {textoMensagem(m.content)}
+               </ReactMarkdown>
+             </div>
           </div>
+        ))}
+        <div ref={bottomRef} />
+      </div>
 
-          {clienteSelecionado && (
-            <div className="clientBadge">
-              {clienteSelecionado.nome}
-            </div>
-          )}
-        </header>
-
-        <section className="content">
-          <div className="chatContainer">
-            {messages.length === 0 ? (
-              <div className="hero">
-                <div className="heroLogo">⚡</div>
-
-                <div className="heroTitle">
-                  Super Agente IA
-                </div>
-
-                <div className="heroText">
-                  Sua inteligência artificial para criar matérias, ler links, analisar imagens,
-                  resumir PDFs e produzir conteúdo profissional para a TV Sertão Livre.
-                </div>
-
-                <div className="shortcutGrid">
-                  {atalhos.map(item => (
-                    <button
-                      key={item.title}
-                      className="shortcut"
-                      onClick={() => {
-                        setInput(item.text)
-
-                        if (item.title === 'Analisar imagem') {
-                          fileRef.current?.click()
-                        }
-                      }}
-                    >
-                      <div className="shortcutIcon">{item.icon}</div>
-                      <div className="shortcutTitle">{item.title}</div>
-                      <div className="shortcutDesc">Clique para iniciar</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              messages.map((msg, index) => {
-                const isUser = msg.role === 'user'
-                const text = textoMensagem(msg.content)
-
-                return (
-                  <div key={index} className={`messageRow ${isUser ? 'user' : ''}`}>
-                    {!isUser && <div className="avatar">S</div>}
-
-                    <div className={`bubble ${isUser ? 'user' : 'assistant'}`}>
-                      {msg.preview && (
-                        <img src={msg.preview} className="attachedImage" alt="Anexo" />
-                      )}
-
-                      {msg.fileName && !msg.preview && (
-                        <div className="fileBox">📄 {msg.fileName}</div>
-                      )}
-
-                      {text ? (
-                        isUser ? (
-                          text
-                        ) : (
-                          <div className="markdown">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                              {text}
-                            </ReactMarkdown>
-                          </div>
-                        )
-                      ) : !isUser && loading ? (
-                        <div className="typing">
-                          <span />
-                          <span />
-                          <span />
-                        </div>
-                      ) : null}
-
-                      {!isUser && text && (
-                        <button
-                          className="copyBtn"
-                          onClick={() => navigator.clipboard.writeText(text)}
-                        >
-                          Copiar resposta
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )
-              })
-            )}
-
-            <div ref={bottomRef} />
+      <div className="chat-input-wrapper">
+        <div className="chat-input-container">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*,application/pdf"
+            style={{ display: 'none' }}
+            onChange={e => {
+              const file = e.target.files?.[0]
+              if (file) handleArquivo(file)
+            }}
+          />
+          <button 
+            className="action-btn" 
+            style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#94A3B8' }}
+            onClick={() => fileRef.current?.click()}
+          >
+            📎
+          </button>
+          <textarea
+            className="chat-textarea"
+            placeholder="Como posso ajudar hoje?"
+            rows={1}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                enviar()
+              }
+            }}
+          />
+          <button 
+            className="action-btn" 
+            onClick={enviar}
+            disabled={loading || (!input.trim() && !arquivo)}
+          >
+            {loading ? '...' : '→'}
+          </button>
+        </div>
+        {preview && (
+          <div style={{ marginTop: 12, display: 'flex', gap: 12, alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: 8, borderRadius: 12 }}>
+            <img src={preview} style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover' }} alt="Preview" />
+            <span style={{ fontSize: 12, color: '#94A3B8' }}>{arquivo?.name}</span>
+            <button onClick={removerArquivo} style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: 12 }}>Remover</button>
           </div>
-        </section>
-
-        <footer className="inputBar">
-          <div className="inputWrap">
-            {(preview || arquivo) && (
-              <div className="previewBox">
-                {preview ? (
-                  <img src={preview} className="previewImg" alt="Preview" />
-                ) : (
-                  <span style={{ fontSize: 28 }}>📄</span>
-                )}
-
-                <span className="previewName">{arquivo?.name}</span>
-
-                <button className="removeBtn" onClick={removerArquivo}>
-                  Remover
-                </button>
-              </div>
-            )}
-
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*,application/pdf"
-              style={{ display: 'none' }}
-              onChange={e => {
-                const file = e.target.files?.[0]
-                if (file) handleArquivo(file)
-              }}
-            />
-
-            <div className="composer">
-              <button
-                className="attachBtn"
-                onClick={() => fileRef.current?.click()}
-                title="Anexar imagem ou PDF"
-              >
-                📎
-              </button>
-
-              <textarea
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onPaste={handlePaste}
-                placeholder="Mensagem, link, imagem ou PDF..."
-                rows={1}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
-                    enviar()
-                  }
-                }}
-              />
-
-              <button
-                className="sendBtn"
-                disabled={loading || (!input.trim() && !arquivo)}
-                onClick={enviar}
-              >
-                →
-              </button>
-            </div>
-
-            <div className="hint">
-              Enter para enviar · Shift+Enter para nova linha · Ctrl+V para colar imagem · 📎 para imagem/PDF
-            </div>
-          </div>
-        </footer>
-      </main>
+        )}
+      </div>
+    </div>
     </div>
   )
 }

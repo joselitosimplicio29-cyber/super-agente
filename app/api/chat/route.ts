@@ -241,7 +241,14 @@ GERAR_IMAGEM: [descrição detalhada em inglês da imagem a ser gerada]
 
 Depois escreva uma frase curta em português dizendo que está gerando a imagem.
 
-Nunca diga que não consegue gerar imagens.
+VÍDEO:
+Você tem a habilidade de processar vídeos usando scripts Python e FFmpeg. 
+Quando o usuário quiser transcrever um vídeo ou realizar edições, responda no formato:
+
+VIDEO_ACTION: {"action": "transcribe", "videoPath": "caminho/do/video.mp4"}
+
+Você também pode sugerir edições baseadas em EDL (Edit Decision List).
+Nunca diga que não consegue processar vídeos; diga que está enviando para processamento.
 `
 
     const stream = await anthropic.messages.stream({
