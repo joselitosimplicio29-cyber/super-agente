@@ -224,7 +224,7 @@ export default function HomePage() {
         <div className="input-glass-box">
           <button 
             className="send-btn-main" 
-            style={{ background: 'transparent', border: '1px solid #E2E8F0', color: #94A3B8' }}
+            style={{ background: 'transparent', border: '1px solid #E2E8F0', color: '#94A3B8' }}
             onClick={() => fileRef.current?.click()}
           >
             <Paperclip size={20} />
