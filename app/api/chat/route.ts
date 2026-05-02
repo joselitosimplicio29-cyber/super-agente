@@ -1,15 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-
-// ============================================================
-// SUPER AGENTE — /api/chat
-// 🔐 Autenticação NextAuth
-// 👤 Personalização por usuário e cliente
-// 🌐 Web search via Serper.dev + Tool Use
-// 📄 Leitura de páginas via Jina Reader
-// ============================================================
 
 export const dynamic = 'force-dynamic';
 
@@ -21,74 +11,39 @@ const MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS = 4096;
 const MAX_TOOL_ITERATIONS = 5;
 
-// ============================================================
-// SYSTEM PROMPT (dinâmico, com contexto do usuário e cliente)
-// ============================================================
-function buildSystemPrompt(userName: string, userRole: string, cliente?: any): string {
-  const base = `Você é o Super Agente, assistente inteligente da TV Sertão Livre, agência de comunicação regional baseada em Ourolândia, Bahia.
+const SYSTEM_PROMPT = `Você é o Super Agente, assistente inteligente da TV Sertão Livre, agência de comunicação regional baseada em Ourolândia, Bahia.
 
-CONTEXTO DA AGÊNCIA:
+CONTEXTO:
 - Atende 12 clientes fixos no sertão baiano e Chapada Diamantina
-- Serviços: jornalismo, produção de vídeo, transmissões ao vivo, social media, WordPress, cobertura de eventos
-- Identidade visual: azul #1E3A8A, dourado #F59E0B, fontes Montserrat + Open Sans
-- Site: sertaolivre.com.br | Redes: @tvsertaolivre
+- Serviços: jornalismo, vídeo, transmissões ao vivo, social media, WordPress
 
-USUÁRIO ATUAL:
-- Nome: ${userName}
-- Papel: ${userRole}`;
-
-  const clienteBlock = cliente
-    ? `
-
-CLIENTE EM FOCO NESTA CONVERSA:
-- Nome: ${cliente.nome || 'não especificado'}
-${cliente.segmento ? `- Segmento: ${cliente.segmento}` : ''}
-${cliente.cores ? `- Cores da marca: ${cliente.cores}` : ''}
-${cliente.tom_voz ? `- Tom de voz: ${cliente.tom_voz}` : ''}
-${cliente.observacoes ? `- Observações: ${cliente.observacoes}` : ''}
-
-Adapte suas respostas ao contexto deste cliente sempre que relevante.`
-    : '';
-
-  const capabilities = `
-
-SUAS CAPACIDADES:
+CAPACIDADES:
 - Você TEM acesso a busca no Google em tempo real (ferramenta buscar_web)
-- Você TEM acesso a leitura de páginas completas (ferramenta ler_pagina)
-- Use buscar_web SEMPRE que precisar de informação atual: notícias, preços, eventos, status, fatos recentes
-- Use ler_pagina quando precisar do conteúdo COMPLETO de uma matéria/artigo (após buscar)
-- Para notícias regionais (Bahia, sertão), prefira fontes locais quando disponíveis
+- Você TEM acesso a leitura de páginas (ferramenta ler_pagina)
+- Use buscar_web SEMPRE que precisar de informação atual: notícias, preços, eventos, fatos recentes
+- Use ler_pagina quando precisar do conteúdo COMPLETO de uma matéria após buscar
 - SEMPRE cite as fontes (URL) quando usar informação da web
 
-ESTILO DE RESPOSTA:
-- Português brasileiro, tom profissional e direto
-- Markdown quando ajudar a leitura (listas, negrito, títulos)
-- Para notícias: lead, contexto, dados, fontes
-- Para tarefas: passo a passo claro
+ESTILO:
+- Português brasileiro, profissional e direto
+- Markdown quando ajudar (listas, negrito, títulos)
 - Considere o contexto regional do sertão baiano quando relevante`;
 
-  return base + clienteBlock + capabilities;
-}
-
-// ============================================================
-// FERRAMENTAS
-// ============================================================
 const TOOLS: Anthropic.Tool[] = [
   {
     name: 'buscar_web',
-    description:
-      'Busca informações atualizadas no Google. Use para notícias, fatos atuais, preços, cotações, eventos recentes, ou qualquer informação que possa ter mudado.',
+    description: 'Busca informações atualizadas no Google. Use para notícias, fatos atuais, preços, eventos recentes.',
     input_schema: {
       type: 'object',
       properties: {
         query: {
           type: 'string',
-          description: 'Query em português brasileiro. Use 3-6 palavras-chave específicas.',
+          description: 'Query em pt-BR. 3-6 palavras-chave específicas.',
         },
         tipo: {
           type: 'string',
           enum: ['web', 'noticias'],
-          description: 'Use "noticias" para sites de notícia (mais recente). Use "web" para busca geral.',
+          description: 'Use "noticias" para sites de notícia. "web" para busca geral.',
         },
       },
       required: ['query'],
@@ -96,8 +51,7 @@ const TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'ler_pagina',
-    description:
-      'Lê o conteúdo completo de uma URL específica. Use depois de buscar_web quando precisar do texto completo de uma matéria.',
+    description: 'Lê o conteúdo completo de uma URL. Use após buscar_web.',
     input_schema: {
       type: 'object',
       properties: {
@@ -111,35 +65,22 @@ const TOOLS: Anthropic.Tool[] = [
   },
 ];
 
-// ============================================================
-// EXECUÇÃO DAS FERRAMENTAS
-// ============================================================
-
 async function buscarWeb(query: string, tipo: 'web' | 'noticias' = 'web') {
   if (!process.env.SERPER_API_KEY) {
     return { erro: 'SERPER_API_KEY não configurada' };
   }
 
   const endpoint = tipo === 'noticias' ? 'news' : 'search';
-  const url = `https://google.serper.dev/${endpoint}`;
-
-  const response = await fetch(url, {
+  const response = await fetch(`https://google.serper.dev/${endpoint}`, {
     method: 'POST',
     headers: {
       'X-API-KEY': process.env.SERPER_API_KEY,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      q: query,
-      gl: 'br',
-      hl: 'pt-br',
-      num: 8,
-    }),
+    body: JSON.stringify({ q: query, gl: 'br', hl: 'pt-br', num: 8 }),
   });
 
-  if (!response.ok) {
-    throw new Error(`Serper retornou ${response.status}`);
-  }
+  if (!response.ok) throw new Error(`Serper retornou ${response.status}`);
 
   const data = await response.json();
 
@@ -167,14 +108,11 @@ async function buscarWeb(query: string, tipo: 'web' | 'noticias' = 'web') {
   if (data.knowledgeGraph?.description) {
     resultado.contexto = data.knowledgeGraph.description;
   }
-
   return resultado;
 }
 
 async function lerPagina(url: string) {
-  const jinaUrl = `https://r.jina.ai/${url}`;
-
-  const response = await fetch(jinaUrl, {
+  const response = await fetch(`https://r.jina.ai/${url}`, {
     headers: {
       Accept: 'text/plain',
       ...(process.env.JINA_API_KEY && {
@@ -183,28 +121,20 @@ async function lerPagina(url: string) {
     },
   });
 
-  if (!response.ok) {
-    throw new Error(`Jina retornou ${response.status}`);
-  }
+  if (!response.ok) throw new Error(`Jina retornou ${response.status}`);
 
   let texto = await response.text();
   if (texto.length > 50000) {
     texto = texto.slice(0, 50000) + '\n\n[...conteúdo truncado...]';
   }
-
   return { url, conteudo: texto };
 }
 
 async function executarFerramenta(name: string, input: any) {
   console.log(`[TOOL] 🔧 ${name}:`, JSON.stringify(input).slice(0, 200));
-
   try {
-    if (name === 'buscar_web') {
-      return await buscarWeb(input.query, input.tipo || 'web');
-    }
-    if (name === 'ler_pagina') {
-      return await lerPagina(input.url);
-    }
+    if (name === 'buscar_web') return await buscarWeb(input.query, input.tipo || 'web');
+    if (name === 'ler_pagina') return await lerPagina(input.url);
     return { erro: `Ferramenta desconhecida: ${name}` };
   } catch (error: any) {
     console.error(`[TOOL] ❌ ${name}:`, error.message);
@@ -212,47 +142,32 @@ async function executarFerramenta(name: string, input: any) {
   }
 }
 
-// ============================================================
-// HANDLER PRINCIPAL
-// ============================================================
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    // 🔐 Autenticação
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
-    const userName = (session.user as any).name || 'Usuário';
-    const userRole = (session.user as any).role || 'member';
-
-    // Validações
     if (!process.env.ANTHROPIC_API_KEY) {
-      return NextResponse.json(
-        { error: 'ANTHROPIC_API_KEY não configurada' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'ANTHROPIC_API_KEY não configurada' }, { status: 500 });
     }
 
-    const body = await req.json();
-    const messages: { role: string; content: string }[] = body.messages || [];
+    const body = await request.json();
+    const messages: ChatMessage[] = body.messages || [];
     const singleMessage: string | undefined = body.message;
-    const cliente = body.cliente;
     const conversation_id = body.conversation_id;
+    const cliente = body.cliente;
 
-    // ============================================================
-    // PREPARAÇÃO DAS MENSAGENS (lógica preservada do código original)
-    // ============================================================
     let anthropicMessages: { role: 'user' | 'assistant'; content: string }[] = [];
 
     if (messages.length > 0) {
       anthropicMessages = messages
         .filter((m) => m.content && m.content.trim() !== '')
         .map((m) => ({
-          role: m.role === 'user' ? 'user' : 'assistant',
+          role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
           content: typeof m.content === 'string' ? m.content : String(m.content),
-        })) as { role: 'user' | 'assistant'; content: string }[];
+        }));
     } else if (singleMessage) {
       anthropicMessages = [{ role: 'user', content: singleMessage }];
     }
@@ -261,52 +176,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Mensagem vazia' }, { status: 400 });
     }
 
-    // Última mensagem deve ser do usuário (requisito Anthropic)
     const lastMsg = anthropicMessages[anthropicMessages.length - 1];
     if (lastMsg.role !== 'user') {
-      return NextResponse.json(
-        { error: 'A última mensagem deve ser do usuário' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'A última mensagem deve ser do usuário' }, { status: 400 });
     }
 
-    // Garante alternância de roles (mescla mensagens consecutivas do mesmo role)
-    const cleanedMessages: { role: 'user' | 'assistant'; content: string }[] = [];
+    const cleaned: { role: 'user' | 'assistant'; content: string }[] = [];
     for (const msg of anthropicMessages) {
-      if (
-        cleanedMessages.length > 0 &&
-        cleanedMessages[cleanedMessages.length - 1].role === msg.role
-      ) {
-        cleanedMessages[cleanedMessages.length - 1].content += '\n' + msg.content;
+      if (cleaned.length > 0 && cleaned[cleaned.length - 1].role === msg.role) {
+        cleaned[cleaned.length - 1].content += '\n' + msg.content;
       } else {
-        cleanedMessages.push({ ...msg });
+        cleaned.push({ ...msg });
       }
     }
 
-    console.log(
-      `[CHAT] User: ${userName} | Conversa: ${conversation_id || 'nova'} | Cliente: ${cliente?.nome || 'nenhum'} | Mensagens: ${cleanedMessages.length}`
-    );
+    console.log(`[CHAT] Conversa: ${conversation_id || 'nova'} | Mensagens: ${cleaned.length}`);
 
-    const systemPrompt = buildSystemPrompt(userName, userRole, cliente);
+    const systemPrompt = cliente
+      ? `${SYSTEM_PROMPT}\n\nCLIENTE EM FOCO: ${cliente.nome || 'não especificado'}${cliente.segmento ? ` (${cliente.segmento})` : ''}`
+      : SYSTEM_PROMPT;
 
-    // ============================================================
-    // LOOP DE AGENTE (com tool use)
-    // ============================================================
-    const apiMessages: Anthropic.MessageParam[] = cleanedMessages.map((m) => ({
+    const apiMessages: Anthropic.MessageParam[] = cleaned.map((m) => ({
       role: m.role,
       content: m.content,
     }));
 
     const fontes: Array<{ titulo: string; url: string }> = [];
-    const buscasRealizadas: string[] = [];
-    let totalInputTokens = 0;
-    let totalOutputTokens = 0;
+    const buscas: string[] = [];
+    let totalIn = 0;
+    let totalOut = 0;
     let respostaFinal = '';
 
-    let iteracoes = 0;
-
-    while (iteracoes < MAX_TOOL_ITERATIONS) {
-      iteracoes++;
+    let iter = 0;
+    while (iter < MAX_TOOL_ITERATIONS) {
+      iter++;
 
       const response = await anthropic.messages.create({
         model: MODEL,
@@ -316,49 +219,37 @@ export async function POST(req: NextRequest) {
         messages: apiMessages,
       });
 
-      totalInputTokens += response.usage.input_tokens;
-      totalOutputTokens += response.usage.output_tokens;
+      totalIn += response.usage.input_tokens;
+      totalOut += response.usage.output_tokens;
 
       const toolUses: Array<{ id: string; name: string; input: any }> = [];
-      let textoNessaRodada = '';
+      let textoRodada = '';
 
       for (const block of response.content) {
         if (block.type === 'text') {
-          textoNessaRodada += block.text;
+          textoRodada += block.text;
         } else if (block.type === 'tool_use') {
-          toolUses.push({
-            id: block.id,
-            name: block.name,
-            input: block.input,
-          });
+          toolUses.push({ id: block.id, name: block.name, input: block.input });
         }
       }
 
-      if (textoNessaRodada) {
-        respostaFinal += (respostaFinal ? '\n\n' : '') + textoNessaRodada;
+      if (textoRodada) {
+        respostaFinal += (respostaFinal ? '\n\n' : '') + textoRodada;
       }
 
-      if (response.stop_reason === 'end_turn' || toolUses.length === 0) {
-        break;
-      }
+      if (response.stop_reason === 'end_turn' || toolUses.length === 0) break;
 
       apiMessages.push({ role: 'assistant', content: response.content });
 
       const toolResults: Anthropic.ToolResultBlockParam[] = [];
-
       for (const tu of toolUses) {
-        if (tu.name === 'buscar_web') {
-          buscasRealizadas.push(tu.input.query);
-        }
+        if (tu.name === 'buscar_web') buscas.push(tu.input.query);
 
         const resultado = await executarFerramenta(tu.name, tu.input);
 
         if (tu.name === 'buscar_web' && (resultado as any).resultados) {
           for (const r of (resultado as any).resultados) {
-            fontes.push({
-              titulo: r.titulo || r.title,
-              url: r.url,
-            });
+            fontes.push({ titulo: r.titulo || r.title, url: r.url });
           }
         }
 
@@ -372,55 +263,39 @@ export async function POST(req: NextRequest) {
       apiMessages.push({ role: 'user', content: toolResults });
     }
 
-    const fontesUnicas = Array.from(
-      new Map(fontes.map((f) => [f.url, f])).values()
-    ).slice(0, 10);
+    const fontesUnicas = Array.from(new Map(fontes.map((f) => [f.url, f])).values()).slice(0, 10);
 
-    console.log(
-      `[CHAT] ✅ Concluído | iterações: ${iteracoes} | buscas: ${buscasRealizadas.length} | tokens: ${totalInputTokens}+${totalOutputTokens}`
-    );
+    if (!respostaFinal) respostaFinal = 'Não consegui gerar uma resposta.';
 
-    if (!respostaFinal) {
-      respostaFinal = 'Não consegui gerar uma resposta.';
-    }
+    console.log(`[CHAT] ✅ iter=${iter} | buscas=${buscas.length} | tokens=${totalIn}+${totalOut}`);
 
-    // ⚠️ RETORNA `text` (compatível com seu frontend) e `message` (futuro)
     return NextResponse.json({
       text: respostaFinal,
       message: respostaFinal,
       sources: fontesUnicas,
-      searchQueries: buscasRealizadas,
+      searchQueries: buscas,
       usage: {
-        input_tokens: totalInputTokens,
-        output_tokens: totalOutputTokens,
-        web_searches: buscasRealizadas.length,
-        iterations: iteracoes,
+        input_tokens: totalIn,
+        output_tokens: totalOut,
+        web_searches: buscas.length,
+        iterations: iter,
       },
     });
   } catch (error: any) {
-    console.error('[CHAT] ❌ Erro:', error);
+    console.error('[CHAT] ❌', error);
 
     if (error?.status === 401) {
       return NextResponse.json({ error: 'API key Anthropic inválida' }, { status: 401 });
     }
     if (error?.status === 429) {
-      return NextResponse.json(
-        { error: 'Limite de requisições atingido. Aguarde alguns segundos.' },
-        { status: 429 }
-      );
+      return NextResponse.json({ error: 'Limite de requisições atingido' }, { status: 429 });
     }
     if (error?.status === 404) {
-      return NextResponse.json(
-        { error: `Modelo ${MODEL} não disponível na sua conta` },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: `Modelo ${MODEL} não disponível` }, { status: 404 });
     }
 
     return NextResponse.json(
-      {
-        error: 'Erro ao processar mensagem',
-        details: error?.message || 'Erro desconhecido',
-      },
+      { error: 'Erro ao processar', details: error?.message || 'Desconhecido' },
       { status: 500 }
     );
   }
