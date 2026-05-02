@@ -158,8 +158,6 @@ export default function ChatConversationPage() {
           background: #FFFFFF;
           color: #0F172A;
         }
-
-        /* ═══ HEADER ═══ */
         .chat-header {
           height: 64px;
           display: flex;
@@ -178,8 +176,6 @@ export default function ChatConversationPage() {
           text-overflow: ellipsis;
           white-space: nowrap;
         }
-
-        /* ═══ SCROLL ═══ */
         .chat-scroll {
           flex: 1;
           overflow-y: auto;
@@ -187,14 +183,11 @@ export default function ChatConversationPage() {
         }
         .chat-scroll::-webkit-scrollbar { width: 6px; }
         .chat-scroll::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 3px; }
-
         .chat-inner {
           max-width: 800px;
           margin: 0 auto;
           padding: 40px 24px;
         }
-
-        /* ═══ USER ═══ */
         .msg-user-box {
           display: flex;
           justify-content: flex-end;
@@ -209,8 +202,6 @@ export default function ChatConversationPage() {
           font-size: 15px;
           line-height: 1.6;
         }
-
-        /* ═══ ASSISTANT ═══ */
         .msg-assistant-box {
           display: flex;
           gap: 16px;
@@ -231,8 +222,6 @@ export default function ChatConversationPage() {
           line-height: 1.8;
           color: #334155;
         }
-
-        /* ═══ ACTIONS ═══ */
         .actions-row {
           display: flex;
           gap: 8px;
@@ -251,8 +240,6 @@ export default function ChatConversationPage() {
           cursor: pointer;
         }
         .action-btn:hover { background: #F8FAFC; color: #1E293B; }
-
-        /* ═══ FOOTER ═══ */
         .chat-footer {
           padding: 24px;
           background: #FFFFFF;
@@ -332,7 +319,7 @@ export default function ChatConversationPage() {
                     )}
                   </div>
                 </div>
-              )}
+              )
             )}
             <div ref={bottomRef} />
           </div>
