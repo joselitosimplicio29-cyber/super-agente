@@ -1,15 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  --background: #020617;
-  --foreground: #F8FAFC;
+  /* Tema CLARO - Super Agente */
+  --background: #FFFFFF;
+  --foreground: #111827;
   --primary: #10B981;
   --primary-hover: #059669;
-  --accent: #FACC15;
-  --surface: #0F172A;
-  --surface-border: rgba(255, 255, 255, 0.08);
-  --glass: rgba(15, 23, 42, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.05);
+  --accent: #F59E0B;
+  --surface: #F9FAFB;
+  --surface-border: #E5E7EB;
+  --glass: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.06);
+
+  /* Cores auxiliares para componentes */
+  --text-primary: #111827;
+  --text-secondary: #4B5563;
+  --text-muted: #6B7280;
+  --text-soft: #9CA3AF;
+  --border-soft: #F3F4F6;
+  --border-default: #E5E7EB;
+  --border-strong: #D1D5DB;
+  --bg-soft: #F9FAFB;
+  --bg-hover: #F3F4F6;
 }
 
 @theme inline {
@@ -25,11 +37,12 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Inter, system-ui, sans-serif;
+  font-family: var(--font-geist-sans), Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glassmorphism Utility */
+/* Glassmorphism Utility - agora branco translúcido */
 .glass {
   background: var(--glass);
   backdrop-filter: blur(12px);
@@ -37,9 +50,10 @@ body {
   border: 1px solid var(--glass-border);
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar - tema claro */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -47,10 +61,27 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: #E5E7EB;
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: #D1D5DB;
+}
+
+/* Seleção de texto */
+::selection {
+  background: rgba(16, 185, 129, 0.2);
+  color: #111827;
+}
+
+/* Foco padrão acessível */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Inputs e textareas - reset suave */
+input, textarea, select, button {
+  font-family: inherit;
 }

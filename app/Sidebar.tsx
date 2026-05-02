@@ -4,10 +4,9 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
 import { 
-  Zap, Home, MessageSquare, Folder, Image as ImageIcon, 
-  FileText, Smartphone, LayoutTemplate, 
+  MessageSquare, Folder, Smartphone, LayoutTemplate, 
   Sparkles, Calendar, DollarSign, History, 
-  LayoutDashboard, StickyNote, Settings
+  LayoutDashboard, StickyNote
 } from 'lucide-react'
 
 interface Client {
@@ -29,6 +28,9 @@ export default function Sidebar() {
       .catch(() => {})
   }, [])
 
+  // Hide on /chat routes — chat has its own sidebar
+  if (pathname.startsWith('/chat')) return null
+
   const navItems = [
     { href: "/chat",       label: "Chat",        icon: <MessageSquare size={18} /> },
     { href: "/",           label: "Dashboard",   icon: <LayoutDashboard size={18} /> },
@@ -46,8 +48,8 @@ export default function Sidebar() {
       <style>{`
         .sidebar {
           width: 260px;
-          background: #020617;
-          border-right: 1px solid rgba(255,255,255,0.05);
+          background: #FFFFFF;
+          border-right: 1px solid #E5E7EB;
           display: flex;
           flex-direction: column;
           height: 100vh;
@@ -58,27 +60,45 @@ export default function Sidebar() {
         }
 
         .brand-header {
-          padding: 24px;
+          padding: 18px 20px 16px;
           display: flex;
           align-items: center;
-          gap: 12px;
-          background: linear-gradient(to bottom, rgba(16, 185, 129, 0.05), transparent);
+          gap: 10px;
+          border-bottom: 1px solid #F3F4F6;
+        }
+
+        .brand-logo {
+          width: 36px;
+          height: 36px;
+          object-fit: contain;
+          flex-shrink: 0;
+        }
+
+        .brand-text {
+          display: flex;
+          flex-direction: column;
+          line-height: 1.2;
         }
 
         .brand-title {
           font-weight: 700;
-          font-size: 19px;
-          letter-spacing: -0.03em;
-          color: #F8FAFC;
-          background: linear-gradient(to right, #F8FAFC, #94A3B8);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
+          font-size: 15px;
+          letter-spacing: -0.02em;
+          color: #0F1B33;
+        }
+
+        .brand-subtitle {
+          font-size: 10px;
+          font-weight: 500;
+          color: #6B7280;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
         }
 
         .nav-menu {
           flex: 1;
           overflow-y: auto;
-          padding: 12px 16px;
+          padding: 12px;
         }
 
         .nav-item {
@@ -86,144 +106,158 @@ export default function Sidebar() {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 10px 14px;
-          border-radius: 12px;
+          padding: 9px 12px;
+          border-radius: 10px;
           font-size: 14px;
           font-weight: 500;
           cursor: pointer;
-          color: #94A3B8;
+          color: #4B5563;
           text-decoration: none;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          margin-bottom: 4px;
+          transition: all 0.15s ease;
+          margin-bottom: 2px;
           border: 1px solid transparent;
         }
 
         .nav-item.active {
-          background: rgba(16, 185, 129, 0.1);
-          color: #10B981;
-          border: 1px solid rgba(16, 185, 129, 0.2);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          background: #F3F4F6;
+          color: #0F1B33;
+          font-weight: 600;
         }
 
         .nav-item:hover:not(.active) {
-          background: rgba(255, 255, 255, 0.03);
-          color: #F8FAFC;
-          transform: translateX(4px);
+          background: #F9FAFB;
+          color: #0F1B33;
+        }
+
+        .nav-item svg {
+          flex-shrink: 0;
+          color: inherit;
         }
 
         .section-title {
           font-size: 11px;
           font-weight: 600;
-          color: #475569;
+          color: #9CA3AF;
           text-transform: uppercase;
-          letter-spacing: 0.1em;
-          margin: 28px 0 12px 14px;
+          letter-spacing: 0.08em;
+          margin: 20px 0 8px 12px;
         }
 
         .sidebar-footer {
-          padding: 20px;
-          border-top: 1px solid rgba(255,255,255,0.05);
-          background: rgba(0,0,0,0.2);
+          padding: 16px;
+          border-top: 1px solid #F3F4F6;
         }
 
         .plan-card {
-          background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(15, 23, 42, 0.4) 100%);
-          border: 1px solid rgba(16, 185, 129, 0.2);
-          border-radius: 20px;
-          padding: 18px;
-          margin-bottom: 20px;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .plan-card::after {
-          content: '';
-          position: absolute;
-          top: -50%;
-          left: -50%;
-          width: 200%;
-          height: 200%;
-          background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
-          pointer-events: none;
+          background: #F9FAFB;
+          border: 1px solid #E5E7EB;
+          border-radius: 14px;
+          padding: 16px;
+          margin-bottom: 12px;
         }
 
         .plan-header {
           display: flex;
           align-items: center;
-          gap: 8px;
-          margin-bottom: 10px;
+          gap: 6px;
+          margin-bottom: 8px;
         }
 
         .plan-label {
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 600;
-          color: #10B981;
+          color: #6B7280;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.06em;
         }
 
         .plan-name {
           font-weight: 700;
-          font-size: 15px;
-          margin-bottom: 6px;
-          color: #F8FAFC;
+          font-size: 14px;
+          margin-bottom: 4px;
+          color: #0F1B33;
         }
 
         .plan-desc {
           font-size: 12px;
-          color: #94A3B8;
-          line-height: 1.6;
-          margin-bottom: 16px;
+          color: #6B7280;
+          line-height: 1.5;
+          margin-bottom: 12px;
         }
 
         .plan-btn {
           width: 100%;
-          padding: 10px;
-          background: #10B981;
-          border: none;
-          border-radius: 10px;
-          font-size: 12px;
-          font-weight: 600;
-          color: #FFFFFF;
+          padding: 8px 12px;
+          background: #FFFFFF;
+          border: 1px solid #D1D5DB;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 500;
+          color: #374151;
           cursor: pointer;
-          transition: all 0.2s;
-          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+          transition: all 0.15s ease;
         }
 
         .plan-btn:hover {
-          background: #059669;
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+          background: #F9FAFB;
+          border-color: #9CA3AF;
         }
 
         .client-select {
           width: 100%;
           appearance: none;
-          background: rgba(15, 23, 42, 0.8);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 12px;
-          padding: 12px 16px;
-          font-size: 14px;
+          background: #FFFFFF;
+          border: 1px solid #E5E7EB;
+          border-radius: 10px;
+          padding: 10px 14px;
+          font-size: 13px;
           font-weight: 500;
-          color: #F8FAFC;
+          color: #374151;
           cursor: pointer;
           outline: none;
-          transition: all 0.2s;
+          transition: all 0.15s ease;
+          background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+          background-repeat: no-repeat;
+          background-position: right 14px center;
+          padding-right: 36px;
         }
 
         .client-select:focus {
-          border-color: #10B981;
-          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+          border-color: #F59E0B;
+          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+        }
+
+        .client-select:hover {
+          border-color: #D1D5DB;
+        }
+
+        .nav-menu::-webkit-scrollbar {
+          width: 6px;
+        }
+        .nav-menu::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .nav-menu::-webkit-scrollbar-thumb {
+          background: #E5E7EB;
+          border-radius: 3px;
+        }
+        .nav-menu::-webkit-scrollbar-thumb:hover {
+          background: #D1D5DB;
         }
       `}</style>
 
       <div className="brand-header">
-        <Zap size={24} fill="#FACC15" color="#FACC15" />
-        <span className="brand-title">Super Agente</span>
+        <div className="w-9 h-9 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/10">
+          <Sparkles size={20} color="#FFFFFF" fill="currentColor" />
+        </div>
+        <div className="brand-text">
+          <span className="brand-title">Super Agente</span>
+          <span className="brand-subtitle">Inteligência que resolve</span>
+        </div>
       </div>
 
       <nav className="nav-menu">
-        <div style={{ marginBottom: 16 }}>
+        <div>
           {navItems.slice(0, 2).map(item => (
             <Link 
               key={item.href} 
@@ -254,7 +288,7 @@ export default function Sidebar() {
       <div className="sidebar-footer">
         <div className="plan-card">
           <div className="plan-header">
-            <Sparkles size={16} color="#8B5CF6" />
+            <Sparkles size={14} color="#F59E0B" />
             <span className="plan-label">Status</span>
           </div>
           <div className="plan-name">Agente Ativo</div>
@@ -275,4 +309,4 @@ export default function Sidebar() {
       </div>
     </aside>
   )
-}
+}

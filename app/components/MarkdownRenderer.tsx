@@ -18,69 +18,74 @@ export default function MarkdownRenderer({ children }: MarkdownRendererProps) {
           h1: ({ node, ...props }) => (
             <h1 style={{
               fontSize: 22,
-              fontWeight: 500,
+              fontWeight: 700,
               marginTop: 16,
               marginBottom: 8,
-              color: '#2C2C2A'
+              color: '#0F1B33',
+              letterSpacing: '-0.02em'
             }} {...props} />
           ),
           h2: ({ node, ...props }) => (
             <h2 style={{
               fontSize: 18,
-              fontWeight: 500,
+              fontWeight: 700,
               marginTop: 16,
               marginBottom: 8,
-              color: '#2C2C2A'
+              color: '#0F1B33',
+              letterSpacing: '-0.01em'
             }} {...props} />
           ),
           h3: ({ node, ...props }) => (
             <h3 style={{
               fontSize: 16,
-              fontWeight: 500,
+              fontWeight: 600,
               marginTop: 14,
               marginBottom: 6,
-              color: '#2C2C2A'
+              color: '#0F1B33'
             }} {...props} />
           ),
           p: ({ node, ...props }) => (
             <p style={{
-              fontSize: 14,
+              fontSize: 15,
               lineHeight: 1.7,
               margin: '8px 0',
-              color: '#2C2C2A'
+              color: '#374151'
             }} {...props} />
           ),
           ul: ({ node, ...props }) => (
             <ul style={{
               paddingLeft: 24,
               margin: '8px 0',
-              listStyleType: 'disc'
+              listStyleType: 'disc',
+              color: '#374151'
             }} {...props} />
           ),
           ol: ({ node, ...props }) => (
             <ol style={{
               paddingLeft: 24,
               margin: '8px 0',
-              listStyleType: 'decimal'
+              listStyleType: 'decimal',
+              color: '#374151'
             }} {...props} />
           ),
           li: ({ node, ...props }) => (
             <li style={{
-              fontSize: 14,
+              fontSize: 15,
               lineHeight: 1.7,
               marginBottom: 4,
-              color: '#2C2C2A'
+              color: '#374151'
             }} {...props} />
           ),
           strong: ({ node, ...props }) => (
             <strong style={{
-              fontWeight: 600,
-              color: '#2C2C2A'
+              fontWeight: 700,
+              color: '#0F1B33'
             }} {...props} />
           ),
           em: ({ node, ...props }) => (
             <em style={{
-              fontStyle: 'italic'
+              fontStyle: 'italic',
+              color: '#4B5563'
             }} {...props} />
           ),
           a: ({ node, ...props }) => (
@@ -88,8 +93,10 @@ export default function MarkdownRenderer({ children }: MarkdownRendererProps) {
               target="_blank"
               rel="noopener noreferrer"
               style={{
-                color: '#185FA5',
-                textDecoration: 'underline'
+                color: '#F59E0B',
+                textDecoration: 'underline',
+                textUnderlineOffset: 2,
+                fontWeight: 500
               }}
               {...props}
             />
@@ -99,12 +106,13 @@ export default function MarkdownRenderer({ children }: MarkdownRendererProps) {
               return (
                 <code
                   style={{
-                    background: '#F1EFE8',
+                    background: '#FEF3C7',
                     padding: '2px 6px',
                     borderRadius: 4,
-                    fontFamily: 'Menlo, Monaco, monospace',
+                    fontFamily: 'Menlo, Monaco, "Courier New", monospace',
                     fontSize: 13,
-                    color: '#A32D2D'
+                    color: '#B45309',
+                    fontWeight: 500
                   }}
                   {...props}
                 >
@@ -112,18 +120,18 @@ export default function MarkdownRenderer({ children }: MarkdownRendererProps) {
                 </code>
               )
             }
-            // Bloco de código será capturado pelo CodePreview, 
-            // mas caso passe direto, renderiza com estilo
             return (
               <pre style={{
-                background: '#F8F7F2',
-                padding: 12,
-                borderRadius: 8,
+                background: '#F9FAFB',
+                padding: 14,
+                borderRadius: 10,
                 overflow: 'auto',
-                fontFamily: 'Menlo, Monaco, monospace',
+                fontFamily: 'Menlo, Monaco, "Courier New", monospace',
                 fontSize: 13,
-                margin: '8px 0',
-                border: '0.5px solid #E5E3DC'
+                margin: '12px 0',
+                border: '1px solid #E5E7EB',
+                color: '#0F1B33',
+                lineHeight: 1.6
               }}>
                 <code {...props}>{children}</code>
               </pre>
@@ -131,17 +139,20 @@ export default function MarkdownRenderer({ children }: MarkdownRendererProps) {
           },
           blockquote: ({ node, ...props }) => (
             <blockquote style={{
-              borderLeft: '3px solid #BA7517',
+              borderLeft: '3px solid #F59E0B',
               paddingLeft: 14,
               margin: '12px 0',
-              color: '#5F5E5A',
-              fontStyle: 'italic'
+              color: '#6B7280',
+              fontStyle: 'italic',
+              background: '#FFFBEB',
+              padding: '10px 14px',
+              borderRadius: '0 8px 8px 0'
             }} {...props} />
           ),
           hr: ({ node, ...props }) => (
             <hr style={{
               border: 'none',
-              borderTop: '0.5px solid #E5E3DC',
+              borderTop: '1px solid #E5E7EB',
               margin: '16px 0'
             }} {...props} />
           ),
@@ -151,7 +162,7 @@ export default function MarkdownRenderer({ children }: MarkdownRendererProps) {
                 borderCollapse: 'collapse',
                 width: '100%',
                 fontSize: 13,
-                border: '0.5px solid #E5E3DC',
+                border: '1px solid #E5E7EB',
                 borderRadius: 8,
                 overflow: 'hidden'
               }} {...props} />
@@ -159,21 +170,23 @@ export default function MarkdownRenderer({ children }: MarkdownRendererProps) {
           ),
           thead: ({ node, ...props }) => (
             <thead style={{
-              background: '#F8F7F2'
+              background: '#F9FAFB'
             }} {...props} />
           ),
           th: ({ node, ...props }) => (
             <th style={{
-              padding: '8px 12px',
+              padding: '10px 14px',
               textAlign: 'left',
-              fontWeight: 500,
-              borderBottom: '0.5px solid #E5E3DC'
+              fontWeight: 600,
+              color: '#0F1B33',
+              borderBottom: '1px solid #E5E7EB'
             }} {...props} />
           ),
           td: ({ node, ...props }) => (
             <td style={{
-              padding: '8px 12px',
-              borderBottom: '0.5px solid #E5E3DC'
+              padding: '10px 14px',
+              borderBottom: '1px solid #F3F4F6',
+              color: '#374151'
             }} {...props} />
           ),
         }}
