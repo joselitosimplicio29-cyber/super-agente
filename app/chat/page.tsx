@@ -1,45 +1,57 @@
-'use client'
+'use client';
 
-import { useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Zap, MessageSquare, Sparkles, Smartphone,
   Image as ImageIcon, FileText, LayoutTemplate,
   ArrowUp, Paperclip, X
-} from 'lucide-react'
+} from 'lucide-react';
 
 export default function ChatPage() {
-  const router = useRouter()
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
+  const router = useRouter();
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   async function enviar() {
-    if (!input.trim() || loading) return
+    if (!input.trim() || loading) return;
 
-    const text = input.trim()
-    setLoading(true)
+    const text = input.trim();
+    setLoading(true);
 
     try {
-      // 1. Criar conversa no banco
+      console.log('[CHAT] Criando conversa...');
+      
       const res = await fetch('/api/chat/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ titulo: text.slice(0, 50) })
-      })
+      });
 
-      const data = await res.json()
-      const convId = data.id
-
-      if (!convId) {
-        throw new Error('Não foi possível criar a conversa.')
+      console.log('[CHAT] Resposta status:', res.status);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('[CHAT] Erro na resposta:', res.status, errorText);
+        throw new Error(`Erro ${res.status}: ${errorText}`);
       }
 
-      // 2. Redirecionar para /chat/[id] com a primeira mensagem como query
-      const encodedMsg = encodeURIComponent(text)
-      router.push(`/chat/${convId}?firstMessage=${encodedMsg}`)
-    } catch {
-      setLoading(false)
+      const data = await res.json();
+      console.log('[CHAT] Conversa criada:', data);
+      
+      const convId = data.id;
+
+      if (!convId) {
+        throw new Error('Não foi possível criar a conversa.');
+      }
+
+      const encodedMsg = encodeURIComponent(text);
+      router.push(`/chat/${convId}?firstMessage=${encodedMsg}`);
+    } catch (error: any) {
+      console.error('[CHAT] Erro ao enviar:', error);
+      alert('Erro ao criar conversa: ' + error.message);
+      setLoading(false);
     }
   }
 
@@ -50,7 +62,7 @@ export default function ChatPage() {
     { icon: <ImageIcon size={20} color="#10B981" />, bg: 'rgba(16, 185, 129, 0.1)', label: 'Analisar Imagem', sub: 'Envie uma imagem e receba análises e insights.', prompt: 'Analise esta imagem.' },
     { icon: <FileText size={20} color="#8B5CF6" />, bg: 'rgba(139, 92, 246, 0.1)', label: 'Ler PDF', sub: 'Resuma e extraia informações de documentos PDF.', prompt: 'Leia e resuma este documento.' },
     { icon: <LayoutTemplate size={20} color="#8B5CF6" />, bg: 'rgba(139, 92, 246, 0.1)', label: 'Criar Componente', sub: 'Gere componentes React com preview em tempo real.', prompt: 'Cria um componente React de: ' }
-  ]
+  ];
 
   return (
     <div className="chat-page">
@@ -269,8 +281,8 @@ export default function ChatPage() {
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  enviar()
+                  e.preventDefault();
+                  enviar();
                 }
               }}
             />
@@ -285,5 +297,5 @@ export default function ChatPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
