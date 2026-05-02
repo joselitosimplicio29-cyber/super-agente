@@ -1,27 +1,32 @@
 @import "tailwindcss";
 
 :root {
-  /* Tema CLARO - Super Agente */
-  --background: #FFFFFF;
-  --foreground: #111827;
+  /* Tema ESCURO - Emerald & Slate (Glassmorphism) */
+  --background: #020617;
+  --foreground: #F8FAFC;
+  
   --primary: #10B981;
   --primary-hover: #059669;
   --accent: #F59E0B;
-  --surface: #F9FAFB;
-  --surface-border: #E5E7EB;
-  --glass: rgba(255, 255, 255, 0.8);
-  --glass-border: rgba(0, 0, 0, 0.06);
+  
+  --surface: rgba(15, 23, 42, 0.4);
+  --surface-border: rgba(255, 255, 255, 0.06);
+  
+  --glass: rgba(15, 23, 42, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.08);
 
-  /* Cores auxiliares para componentes */
-  --text-primary: #111827;
-  --text-secondary: #4B5563;
-  --text-muted: #6B7280;
-  --text-soft: #9CA3AF;
-  --border-soft: #F3F4F6;
-  --border-default: #E5E7EB;
-  --border-strong: #D1D5DB;
-  --bg-soft: #F9FAFB;
-  --bg-hover: #F3F4F6;
+  /* Cores auxiliares */
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --text-soft: #475569;
+  
+  --border-soft: rgba(255, 255, 255, 0.04);
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.15);
+  
+  --bg-soft: rgba(15, 23, 42, 0.3);
+  --bg-hover: rgba(255, 255, 255, 0.05);
 }
 
 @theme inline {
@@ -36,13 +41,17 @@
 
 body {
   background: var(--background);
+  background-attachment: fixed;
+  background-image: 
+    radial-gradient(circle at 0% 0%, rgba(16, 185, 129, 0.05) 0%, transparent 25%),
+    radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.05) 0%, transparent 25%);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glassmorphism Utility - agora branco translúcido */
+/* Glassmorphism Utility */
 .glass {
   background: var(--glass);
   backdrop-filter: blur(12px);
@@ -50,10 +59,10 @@ body {
   border: 1px solid var(--glass-border);
 }
 
-/* Custom Scrollbar - tema claro */
+/* Custom Scrollbar - tema escuro */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -61,27 +70,24 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #E5E7EB;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #D1D5DB;
+  background: rgba(255, 255, 255, 0.2);
 }
 
-/* Seleção de texto */
 ::selection {
-  background: rgba(16, 185, 129, 0.2);
-  color: #111827;
+  background: rgba(16, 185, 129, 0.3);
+  color: #FFFFFF;
 }
 
-/* Foco padrão acessível */
 :focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
-/* Inputs e textareas - reset suave */
 input, textarea, select, button {
   font-family: inherit;
 }

@@ -6,7 +6,7 @@ import { useState, useEffect } from "react"
 import { 
   MessageSquare, Folder, Smartphone, LayoutTemplate, 
   Sparkles, Calendar, DollarSign, History, 
-  LayoutDashboard, StickyNote
+  LayoutDashboard, StickyNote, ChevronRight
 } from 'lucide-react'
 
 interface Client {
@@ -28,7 +28,6 @@ export default function Sidebar() {
       .catch(() => {})
   }, [])
 
-  // Hide on /chat routes — chat has its own sidebar
   if (pathname.startsWith('/chat')) return null
 
   const navItems = [
@@ -48,8 +47,9 @@ export default function Sidebar() {
       <style>{`
         .sidebar {
           width: 260px;
-          background: #FFFFFF;
-          border-right: 1px solid #E5E7EB;
+          background: rgba(15, 23, 42, 0.4);
+          backdrop-filter: blur(20px);
+          border-right: 1px solid rgba(255, 255, 255, 0.05);
           display: flex;
           flex-direction: column;
           height: 100vh;
@@ -60,45 +60,47 @@ export default function Sidebar() {
         }
 
         .brand-header {
-          padding: 18px 20px 16px;
+          padding: 24px 20px;
           display: flex;
           align-items: center;
-          gap: 10px;
-          border-bottom: 1px solid #F3F4F6;
+          gap: 12px;
         }
 
-        .brand-logo {
+        .brand-logo-container {
           width: 36px;
           height: 36px;
-          object-fit: contain;
-          flex-shrink: 0;
+          background: linear-gradient(135deg, #10B981, #3B82F6);
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
         }
 
         .brand-text {
           display: flex;
           flex-direction: column;
-          line-height: 1.2;
         }
 
         .brand-title {
-          font-weight: 700;
-          font-size: 15px;
+          font-weight: 800;
+          font-size: 16px;
           letter-spacing: -0.02em;
-          color: #0F1B33;
+          color: #F8FAFC;
         }
 
         .brand-subtitle {
           font-size: 10px;
-          font-weight: 500;
-          color: #6B7280;
-          letter-spacing: 0.04em;
+          font-weight: 600;
+          color: #64748B;
+          letter-spacing: 0.05em;
           text-transform: uppercase;
         }
 
         .nav-menu {
           flex: 1;
           overflow-y: auto;
-          padding: 12px;
+          padding: 0 12px;
         }
 
         .nav-item {
@@ -106,153 +108,130 @@ export default function Sidebar() {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 9px 12px;
-          border-radius: 10px;
+          padding: 10px 14px;
+          border-radius: 12px;
           font-size: 14px;
           font-weight: 500;
           cursor: pointer;
-          color: #4B5563;
+          color: #94A3B8;
           text-decoration: none;
-          transition: all 0.15s ease;
-          margin-bottom: 2px;
-          border: 1px solid transparent;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          margin-bottom: 4px;
         }
 
         .nav-item.active {
-          background: #F3F4F6;
-          color: #0F1B33;
+          background: rgba(16, 185, 129, 0.1);
+          color: #10B981;
           font-weight: 600;
         }
 
         .nav-item:hover:not(.active) {
-          background: #F9FAFB;
-          color: #0F1B33;
+          background: rgba(255, 255, 255, 0.03);
+          color: #F8FAFC;
         }
 
         .nav-item svg {
           flex-shrink: 0;
-          color: inherit;
+          opacity: 0.7;
+        }
+
+        .nav-item.active svg {
+          opacity: 1;
         }
 
         .section-title {
           font-size: 11px;
-          font-weight: 600;
-          color: #9CA3AF;
+          font-weight: 700;
+          color: #475569;
           text-transform: uppercase;
-          letter-spacing: 0.08em;
-          margin: 20px 0 8px 12px;
+          letter-spacing: 0.1em;
+          margin: 24px 0 12px 14px;
         }
 
         .sidebar-footer {
-          padding: 16px;
-          border-top: 1px solid #F3F4F6;
+          padding: 20px;
+          border-top: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .plan-card {
-          background: #F9FAFB;
-          border: 1px solid #E5E7EB;
-          border-radius: 14px;
+        .status-card {
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: 16px;
           padding: 16px;
-          margin-bottom: 12px;
+          margin-bottom: 16px;
         }
 
-        .plan-header {
+        .status-header {
           display: flex;
           align-items: center;
-          gap: 6px;
-          margin-bottom: 8px;
-        }
-
-        .plan-label {
-          font-size: 10px;
-          font-weight: 600;
-          color: #6B7280;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-        }
-
-        .plan-name {
-          font-weight: 700;
-          font-size: 14px;
-          margin-bottom: 4px;
-          color: #0F1B33;
-        }
-
-        .plan-desc {
-          font-size: 12px;
-          color: #6B7280;
-          line-height: 1.5;
+          gap: 8px;
           margin-bottom: 12px;
         }
 
-        .plan-btn {
-          width: 100%;
-          padding: 8px 12px;
-          background: #FFFFFF;
-          border: 1px solid #D1D5DB;
-          border-radius: 8px;
-          font-size: 13px;
-          font-weight: 500;
-          color: #374151;
-          cursor: pointer;
-          transition: all 0.15s ease;
+        .status-indicator {
+          width: 8px;
+          height: 8px;
+          background: #10B981;
+          border-radius: 50%;
+          box-shadow: 0 0 8px #10B981;
         }
 
-        .plan-btn:hover {
-          background: #F9FAFB;
-          border-color: #9CA3AF;
+        .status-label {
+          font-size: 11px;
+          font-weight: 700;
+          color: #10B981;
+          text-transform: uppercase;
+        }
+
+        .status-title {
+          font-weight: 700;
+          font-size: 14px;
+          color: #F8FAFC;
+          margin-bottom: 4px;
+        }
+
+        .status-desc {
+          font-size: 12px;
+          color: #64748B;
+          line-height: 1.4;
+        }
+
+        .client-select-wrapper {
+          position: relative;
         }
 
         .client-select {
           width: 100%;
           appearance: none;
-          background: #FFFFFF;
-          border: 1px solid #E5E7EB;
-          border-radius: 10px;
-          padding: 10px 14px;
+          background: rgba(15, 23, 42, 0.6);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          padding: 12px 16px;
           font-size: 13px;
           font-weight: 500;
-          color: #374151;
+          color: #F8FAFC;
           cursor: pointer;
           outline: none;
-          transition: all 0.15s ease;
-          background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-          background-repeat: no-repeat;
-          background-position: right 14px center;
-          padding-right: 36px;
+          transition: all 0.2s;
         }
 
         .client-select:focus {
-          border-color: #F59E0B;
-          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+          border-color: #10B981;
+          background: rgba(15, 23, 42, 0.8);
         }
 
-        .client-select:hover {
-          border-color: #D1D5DB;
-        }
-
-        .nav-menu::-webkit-scrollbar {
-          width: 6px;
-        }
-        .nav-menu::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .nav-menu::-webkit-scrollbar-thumb {
-          background: #E5E7EB;
-          border-radius: 3px;
-        }
-        .nav-menu::-webkit-scrollbar-thumb:hover {
-          background: #D1D5DB;
-        }
+        .nav-menu::-webkit-scrollbar { width: 4px; }
+        .nav-menu::-webkit-scrollbar-track { background: transparent; }
+        .nav-menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 4px; }
       `}</style>
 
       <div className="brand-header">
-        <div className="w-9 h-9 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/10">
-          <Sparkles size={20} color="#FFFFFF" fill="currentColor" />
+        <div className="brand-logo-container">
+          <Sparkles size={20} color="#FFFFFF" fill="#FFFFFF" />
         </div>
         <div className="brand-text">
           <span className="brand-title">Super Agente</span>
-          <span className="brand-subtitle">Inteligência que resolve</span>
+          <span className="brand-subtitle">TV Sertão Livre</span>
         </div>
       </div>
 
@@ -286,26 +265,27 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar-footer">
-        <div className="plan-card">
-          <div className="plan-header">
-            <Sparkles size={14} color="#F59E0B" />
-            <span className="plan-label">Status</span>
+        <div className="status-card">
+          <div className="status-header">
+            <div className="status-indicator" />
+            <span className="status-label">Agente Ativo</span>
           </div>
-          <div className="plan-name">Agente Ativo</div>
-          <p className="plan-desc">Pronto para auxiliar na sua produção diária.</p>
-          <button className="plan-btn">Configurações</button>
+          <div className="status-title">Pronto para auxiliar</div>
+          <p className="status-desc">Selecione um cliente para contextualizar a IA.</p>
         </div>
 
-        <select
-          value={clienteSelecionado}
-          onChange={e => setClienteSelecionado(e.target.value)}
-          className="client-select"
-        >
-          <option value="">Selecione um cliente</option>
-          {clientes.map(c => (
-            <option key={c.id} value={c.id}>{c.nome}</option>
-          ))}
-        </select>
+        <div className="client-select-wrapper">
+          <select
+            value={clienteSelecionado}
+            onChange={e => setClienteSelecionado(e.target.value)}
+            className="client-select"
+          >
+            <option value="">Selecione um cliente</option>
+            {clientes.map(c => (
+              <option key={c.id} value={c.id}>{c.nome}</option>
+            ))}
+          </select>
+        </div>
       </div>
     </aside>
   )

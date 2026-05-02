@@ -16,16 +16,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
-      <body
-        className="min-h-full flex"
-        style={{ background: "#FFFFFF", color: "#111827" }}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen flex text-foreground bg-background`}>
         <AuthProvider>
           <Sidebar />
-          <main
-            className="flex-1 overflow-auto"
-            style={{ background: "#FFFFFF" }}
-          >
+          <main className="flex-1 overflow-auto">
             {children}
           </main>
         </AuthProvider>
