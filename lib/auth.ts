@@ -7,6 +7,13 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+function getEmails(envValue?: string) {
+  return (envValue || "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -14,42 +21,79 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
+
   callbacks: {
     async signIn({ user }) {
-      const allowed = process.env.ALLOWED_EMAILS?.split(",") || [];
-      if (!allowed.includes(user.email!)) return false;
+      const email = user.email?.toLowerCase();
 
-      const { data } = await supabase
+      if (!email) {
+        return false;
+      }
+
+      const allowedEmails = getEmails(process.env.ALLOWED_EMAILS);
+      const adminEmails = getEmails(process.env.ADMIN_EMAILS);
+
+      // Se ALLOWED_EMAILS estiver vazio, libera qualquer Google.
+      // Se quiser bloquear, coloque os emails no Vercel.
+      if (allowedEmails.length > 0 && !allowedEmails.includes(email)) {
+        return false;
+      }
+
+      const { data: existingUser } = await supabase
         .from("users")
         .select("*")
-        .eq("email", user.email)
-        .single();
+        .eq("email", email)
+        .maybeSingle();
 
-      if (!data) {
-        const isAdmin = process.env.ADMIN_EMAILS?.split(",").includes(user.email!);
-        await supabase.from("users").insert({
-          email: user.email,
+      const isAdmin = adminEmails.includes(email);
+
+      if (!existingUser) {
+        const { error } = await supabase.from("users").insert({
+          email,
           name: user.name,
           avatar_url: user.image,
           role: isAdmin ? "admin" : "member",
+          last_login_at: new Date().toISOString(),
         });
+
+        if (error) {
+          console.error("Erro ao criar usuário:", error);
+          return false;
+        }
       } else {
-        await supabase
+        const { error } = await supabase
           .from("users")
-          .update({ last_login_at: new Date().toISOString() })
-          .eq("email", user.email);
+          .update({
+            name: user.name,
+            avatar_url: user.image,
+            role: existingUser.role || (isAdmin ? "admin" : "member"),
+            last_login_at: new Date().toISOString(),
+          })
+          .eq("email", email);
+
+        if (error) {
+          console.error("Erro ao atualizar usuário:", error);
+          return false;
+        }
       }
 
       return true;
     },
+
     async session({ session }) {
+      const email = session.user?.email?.toLowerCase();
+
+      if (!email) {
+        return session;
+      }
+
       const { data: dbUser } = await supabase
         .from("users")
         .select("*")
-        .eq("email", session.user!.email)
-        .single();
+        .eq("email", email)
+        .maybeSingle();
 
-      if (dbUser) {
+      if (dbUser && session.user) {
         (session.user as any).id = dbUser.id;
         (session.user as any).role = dbUser.role;
       }
@@ -57,8 +101,11 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
+
   pages: {
     signIn: "/login",
     error: "/auth/error",
   },
+
+  secret: process.env.NEXTAUTH_SECRET,
 };
