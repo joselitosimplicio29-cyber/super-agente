@@ -1,79 +1,18 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { 
-  Zap, MessageSquare, Sparkles, Smartphone, 
-  Image as ImageIcon, FileText, LayoutTemplate,
-  ArrowUp, Paperclip, X, Search, Plus, Trash2, Globe, Briefcase
+  Sparkles, Smartphone, Image as ImageIcon, FileText, 
+  ArrowUp, Paperclip, Globe
 } from 'lucide-react'
 
-type Message = {
-  role: 'user' | 'assistant'
-  content: string | any[]
-  preview?: string
-  fileName?: string
-}
-
-type Client = {
-  id: string
-  nome: string
-  instagram?: string
-  nicho?: string
-}
-
 export default function HomePage() {
-  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [clientes, setClientes] = useState<Client[]>([])
-  const [clienteSelecionado, setClienteSelecionado] = useState<Client | null>(null)
-  const [conversationId, setConversationId] = useState<string | null>(null)
-  const [arquivo, setArquivo] = useState<{ base64: string; type: string; name: string } | null>(null)
-  const [preview, setPreview] = useState<string | null>(null)
-
-  const bottomRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    fetch('/api/cadastrar-cliente')
-      .then(r => r.json())
-      .then(d => {
-        if (d.clientes) setClientes(d.clientes)
-      })
-      .catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading])
-
-  function textoMensagem(content: string | any[]) {
-    if (typeof content === 'string') return content
-    if (Array.isArray(content)) {
-      return content.find((item: any) => item.type === 'text')?.text || ''
-    }
-    return ''
-  }
-
-  function handleArquivo(file: File) {
-    const reader = new FileReader()
-    reader.onload = e => {
-      const result = e.target?.result as string
-      const base64 = result.split(',')[1]
-      setArquivo({ base64, type: file.type, name: file.name || 'imagem-colada.png' })
-      if (file.type.startsWith('image/')) setPreview(result)
-      else setPreview(null)
-    }
-    reader.readAsDataURL(file)
-  }
-
   async function enviar() {
-    if ((!input.trim() && !arquivo) || loading) return
-    
-    // Simples redirecionamento para o chat com a mensagem inicial
-    // Ou processar aqui mesmo se preferir
+    if (!input.trim() || loading) return
     const text = input.trim()
     setLoading(true)
 
@@ -93,10 +32,10 @@ export default function HomePage() {
   }
 
   const atalhos = [
-    { icon: <FileText size={24} color="#10B981" />, title: 'Matéria jornalística', text: 'Escreva uma matéria jornalística sobre: ', bg: 'rgba(16, 185, 129, 0.1)' },
-    { icon: <Globe size={24} color="#3B82F6" />, title: 'Ler link', text: 'Leia este link e transforme em uma matéria: ', bg: 'rgba(59, 130, 246, 0.1)' },
-    { icon: <Smartphone size={24} color="#F59E0B" />, title: 'Post Instagram', text: 'Crie uma legenda para Instagram sobre: ', bg: 'rgba(245, 158, 11, 0.1)' },
-    { icon: <ImageIcon size={24} color="#8B5CF6" />, title: 'Analisar imagem', text: 'Analise esta imagem de forma profissional.', bg: 'rgba(139, 92, 246, 0.1)' }
+    { icon: <FileText size={24} color="#10B981" />, title: 'Matéria jornalística', text: 'Escreva uma matéria jornalística sobre: ', bg: '#F0FDF4' },
+    { icon: <Globe size={24} color="#3B82F6" />, title: 'Ler link', text: 'Leia este link e transforme em uma matéria: ', bg: '#EFF6FF' },
+    { icon: <Smartphone size={24} color="#F59E0B" />, title: 'Post Instagram', text: 'Crie uma legenda para Instagram sobre: ', bg: '#FFFBEB' },
+    { icon: <ImageIcon size={24} color="#8B5CF6" />, title: 'Analisar imagem', text: 'Analise esta imagem de forma profissional.', bg: '#F5F3FF' }
   ]
 
   return (
@@ -106,7 +45,7 @@ export default function HomePage() {
           padding: 60px 40px;
           max-width: 1000px;
           margin: 0 auto;
-          color: #F8FAFC;
+          color: #0F172A;
         }
 
         .hero-section {
@@ -118,8 +57,8 @@ export default function HomePage() {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          background: rgba(16, 185, 129, 0.1);
-          border: 1px solid rgba(16, 185, 129, 0.2);
+          background: #F0FDF4;
+          border: 1px solid #DCFCE7;
           padding: 6px 14px;
           border-radius: 20px;
           color: #10B981;
@@ -135,14 +74,12 @@ export default function HomePage() {
           font-weight: 800;
           letter-spacing: -0.04em;
           margin-bottom: 16px;
-          background: linear-gradient(to right, #F8FAFC, #94A3B8);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
+          color: #0F172A;
         }
 
         .hero-subtitle {
           font-size: 18px;
-          color: #94A3B8;
+          color: #64748B;
           max-width: 600px;
           margin: 0 auto;
           line-height: 1.6;
@@ -156,21 +93,20 @@ export default function HomePage() {
         }
 
         .shortcut-card {
-          background: rgba(15, 23, 42, 0.4);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          background: #FFFFFF;
+          border: 1px solid #E2E8F0;
           border-radius: 24px;
           padding: 32px 24px;
           cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.3s ease;
           text-align: left;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
         }
 
         .shortcut-card:hover {
-          background: rgba(255, 255, 255, 0.03);
-          border-color: rgba(16, 185, 129, 0.3);
+          border-color: #10B981;
           transform: translateY(-6px);
-          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
         }
 
         .icon-box {
@@ -187,6 +123,7 @@ export default function HomePage() {
           font-weight: 700;
           font-size: 17px;
           margin-bottom: 8px;
+          color: #1E293B;
         }
 
         .shortcut-desc {
@@ -210,15 +147,14 @@ export default function HomePage() {
         }
 
         .input-glass-box {
-          background: rgba(15, 23, 42, 0.8);
-          backdrop-filter: blur(24px);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 24px;
+          background: #FFFFFF;
+          border: 1px solid #E2E8F0;
+          border-radius: 20px;
           padding: 12px;
           display: flex;
           align-items: center;
           gap: 12px;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
         }
 
         .chat-textarea {
@@ -226,7 +162,7 @@ export default function HomePage() {
           background: transparent;
           border: none;
           outline: none;
-          color: #F8FAFC;
+          color: #0F172A;
           padding: 12px;
           resize: none;
           font-size: 16px;
@@ -240,7 +176,7 @@ export default function HomePage() {
           background: #10B981;
           color: white;
           border: none;
-          border-radius: 16px;
+          border-radius: 14px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -254,8 +190,8 @@ export default function HomePage() {
         }
 
         .send-btn-main:disabled {
-          background: #1E293B;
-          color: #475569;
+          background: #F1F5F9;
+          color: #94A3B8;
           cursor: not-allowed;
         }
       `}</style>
@@ -288,7 +224,7 @@ export default function HomePage() {
         <div className="input-glass-box">
           <button 
             className="send-btn-main" 
-            style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#94A3B8' }}
+            style={{ background: 'transparent', border: '1px solid #E2E8F0', color: #94A3B8' }}
             onClick={() => fileRef.current?.click()}
           >
             <Paperclip size={20} />
@@ -309,9 +245,9 @@ export default function HomePage() {
           <button 
             className="send-btn-main" 
             onClick={enviar}
-            disabled={loading || (!input.trim() && !arquivo)}
+            disabled={loading || !input.trim()}
           >
-            {loading ? <div className="loading-dots">...</div> : <ArrowUp size={20} />}
+            {loading ? '...' : <ArrowUp size={20} />}
           </button>
         </div>
       </div>
@@ -320,7 +256,6 @@ export default function HomePage() {
         ref={fileRef}
         type="file" 
         style={{ display: 'none' }} 
-        onChange={e => e.target.files?.[0] && handleArquivo(e.target.files[0])}
       />
     </div>
   )

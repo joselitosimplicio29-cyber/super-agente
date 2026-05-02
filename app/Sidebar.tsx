@@ -47,9 +47,8 @@ export default function Sidebar() {
       <style>{`
         .sidebar {
           width: 260px;
-          background: rgba(15, 23, 42, 0.4);
-          backdrop-filter: blur(20px);
-          border-right: 1px solid rgba(255, 255, 255, 0.05);
+          background: #FFFFFF;
+          border-right: 1px solid #E2E8F0;
           display: flex;
           flex-direction: column;
           height: 100vh;
@@ -57,6 +56,7 @@ export default function Sidebar() {
           position: sticky;
           top: 0;
           z-index: 50;
+          box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
         }
 
         .brand-header {
@@ -74,7 +74,7 @@ export default function Sidebar() {
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
         }
 
         .brand-text {
@@ -86,13 +86,13 @@ export default function Sidebar() {
           font-weight: 800;
           font-size: 16px;
           letter-spacing: -0.02em;
-          color: #F8FAFC;
+          color: #0F172A;
         }
 
         .brand-subtitle {
           font-size: 10px;
           font-weight: 600;
-          color: #64748B;
+          color: #94A3B8;
           letter-spacing: 0.05em;
           text-transform: uppercase;
         }
@@ -113,21 +113,21 @@ export default function Sidebar() {
           font-size: 14px;
           font-weight: 500;
           cursor: pointer;
-          color: #94A3B8;
+          color: #64748B;
           text-decoration: none;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.2s ease;
           margin-bottom: 4px;
         }
 
         .nav-item.active {
-          background: rgba(16, 185, 129, 0.1);
+          background: #F0FDF4;
           color: #10B981;
           font-weight: 600;
         }
 
         .nav-item:hover:not(.active) {
-          background: rgba(255, 255, 255, 0.03);
-          color: #F8FAFC;
+          background: #F8FAFC;
+          color: #0F172A;
         }
 
         .nav-item svg {
@@ -142,7 +142,7 @@ export default function Sidebar() {
         .section-title {
           font-size: 11px;
           font-weight: 700;
-          color: #475569;
+          color: #94A3B8;
           text-transform: uppercase;
           letter-spacing: 0.1em;
           margin: 24px 0 12px 14px;
@@ -150,12 +150,12 @@ export default function Sidebar() {
 
         .sidebar-footer {
           padding: 20px;
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
+          border-top: 1px solid #F1F5F9;
         }
 
         .status-card {
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          background: #F8FAFC;
+          border: 1px solid #E2E8F0;
           border-radius: 16px;
           padding: 16px;
           margin-bottom: 16px;
@@ -173,20 +173,20 @@ export default function Sidebar() {
           height: 8px;
           background: #10B981;
           border-radius: 50%;
-          box-shadow: 0 0 8px #10B981;
+          box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
         }
 
         .status-label {
           font-size: 11px;
           font-weight: 700;
-          color: #10B981;
+          color: #059669;
           text-transform: uppercase;
         }
 
         .status-title {
           font-weight: 700;
           font-size: 14px;
-          color: #F8FAFC;
+          color: #1E293B;
           margin-bottom: 4px;
         }
 
@@ -196,20 +196,16 @@ export default function Sidebar() {
           line-height: 1.4;
         }
 
-        .client-select-wrapper {
-          position: relative;
-        }
-
         .client-select {
           width: 100%;
           appearance: none;
-          background: rgba(15, 23, 42, 0.6);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: #FFFFFF;
+          border: 1px solid #E2E8F0;
           border-radius: 12px;
           padding: 12px 16px;
           font-size: 13px;
           font-weight: 500;
-          color: #F8FAFC;
+          color: #334155;
           cursor: pointer;
           outline: none;
           transition: all 0.2s;
@@ -217,12 +213,11 @@ export default function Sidebar() {
 
         .client-select:focus {
           border-color: #10B981;
-          background: rgba(15, 23, 42, 0.8);
+          box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.05);
         }
 
         .nav-menu::-webkit-scrollbar { width: 4px; }
-        .nav-menu::-webkit-scrollbar-track { background: transparent; }
-        .nav-menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 4px; }
+        .nav-menu::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 4px; }
       `}</style>
 
       <div className="brand-header">
@@ -274,18 +269,16 @@ export default function Sidebar() {
           <p className="status-desc">Selecione um cliente para contextualizar a IA.</p>
         </div>
 
-        <div className="client-select-wrapper">
-          <select
-            value={clienteSelecionado}
-            onChange={e => setClienteSelecionado(e.target.value)}
-            className="client-select"
-          >
-            <option value="">Selecione um cliente</option>
-            {clientes.map(c => (
-              <option key={c.id} value={c.id}>{c.nome}</option>
-            ))}
-          </select>
-        </div>
+        <select
+          value={clienteSelecionado}
+          onChange={e => setClienteSelecionado(e.target.value)}
+          className="client-select"
+        >
+          <option value="">Selecione um cliente</option>
+          {clientes.map(c => (
+            <option key={c.id} value={c.id}>{c.nome}</option>
+          ))}
+        </select>
       </div>
     </aside>
   )

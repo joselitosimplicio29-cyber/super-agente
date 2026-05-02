@@ -1,32 +1,32 @@
 @import "tailwindcss";
 
 :root {
-  /* Tema ESCURO - Emerald & Slate (Glassmorphism) */
-  --background: #020617;
-  --foreground: #F8FAFC;
+  /* Tema CLARO Premium - Emerald & Light Slate */
+  --background: #F8FAFC;
+  --foreground: #0F172A;
   
   --primary: #10B981;
   --primary-hover: #059669;
   --accent: #F59E0B;
   
-  --surface: rgba(15, 23, 42, 0.4);
-  --surface-border: rgba(255, 255, 255, 0.06);
+  --surface: #FFFFFF;
+  --surface-border: #E2E8F0;
   
-  --glass: rgba(15, 23, 42, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.05);
 
   /* Cores auxiliares */
-  --text-primary: #F8FAFC;
-  --text-secondary: #94A3B8;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
   --text-muted: #64748B;
-  --text-soft: #475569;
+  --text-soft: #94A3B8;
   
-  --border-soft: rgba(255, 255, 255, 0.04);
-  --border-default: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.15);
+  --border-soft: #F1F5F9;
+  --border-default: #E2E8F0;
+  --border-strong: #CBD5E1;
   
-  --bg-soft: rgba(15, 23, 42, 0.3);
-  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-soft: #F8FAFC;
+  --bg-hover: #F1F5F9;
 }
 
 @theme inline {
@@ -43,23 +43,24 @@ body {
   background: var(--background);
   background-attachment: fixed;
   background-image: 
-    radial-gradient(circle at 0% 0%, rgba(16, 185, 129, 0.05) 0%, transparent 25%),
-    radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.05) 0%, transparent 25%);
+    radial-gradient(circle at 0% 0%, rgba(16, 185, 129, 0.03) 0%, transparent 30%),
+    radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.03) 0%, transparent 30%);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glassmorphism Utility */
+/* Glassmorphism Utility - Light */
 .glass {
   background: var(--glass);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
-/* Custom Scrollbar - tema escuro */
+/* Custom Scrollbar - tema claro */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -70,17 +71,17 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: #E2E8F0;
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: #CBD5E1;
 }
 
 ::selection {
-  background: rgba(16, 185, 129, 0.3);
-  color: #FFFFFF;
+  background: rgba(16, 185, 129, 0.1);
+  color: #0F172A;
 }
 
 :focus-visible {
