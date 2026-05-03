@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   Zap, MessageSquare, Sparkles, Smartphone,
   Image as ImageIcon, FileText, LayoutTemplate,
-  ArrowUp, Paperclip, X
+  ArrowUp, Paperclip
 } from 'lucide-react';
 
 export default function ChatPage() {
@@ -14,6 +14,58 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.readAsDataURL(file);
+
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+
+      reader.onerror = reject;
+    });
+  }
+
+  async function handleUpload(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Erro ao enviar arquivo');
+      }
+
+      console.log('UPLOAD OK:', data);
+
+      const base64 = await fileToBase64(file);
+
+      setInput(
+        `Imagem em base64:\n${base64}\n\nAnalise esta imagem.`
+      );
+    } catch (error: any) {
+      alert('Erro no upload: ' + error.message);
+    } finally {
+      setLoading(false);
+
+      if (fileRef.current) {
+        fileRef.current.value = '';
+      }
+    }
+  }
+
   async function enviar() {
     if (!input.trim() || loading) return;
 
@@ -21,35 +73,28 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
-      console.log('[CHAT] Criando conversa...');
-      
       const res = await fetch('/api/chat/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ titulo: text.slice(0, 50) })
       });
 
-      console.log('[CHAT] Resposta status:', res.status);
-      
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('[CHAT] Erro na resposta:', res.status, errorText);
         throw new Error(`Erro ${res.status}: ${errorText}`);
       }
 
       const data = await res.json();
-      console.log('[CHAT] Conversa criada:', data);
-      
       const convId = data.id;
 
       if (!convId) {
         throw new Error('Não foi possível criar a conversa.');
       }
 
-      const encodedMsg = encodeURIComponent(text);
-      router.push(`/chat/${convId}?firstMessage=${encodedMsg}`);
+      // CORRIGIDO: não envia base64 pela URL
+      sessionStorage.setItem(`firstMessage:${convId}`, text);
+      router.push(`/chat/${convId}`);
     } catch (error: any) {
-      console.error('[CHAT] Erro ao enviar:', error);
       alert('Erro ao criar conversa: ' + error.message);
       setLoading(false);
     }
@@ -118,7 +163,7 @@ export default function ChatPage() {
           border-radius: 16px;
           padding: 24px;
           text-align: left;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.2s;
           cursor: pointer;
           box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
         }
@@ -154,8 +199,6 @@ export default function ChatPage() {
           background: linear-gradient(to top, #ffffff 70%, rgba(255, 255, 255, 0));
           position: sticky;
           bottom: 0;
-          left: 0;
-          right: 0;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -172,7 +215,6 @@ export default function ChatPage() {
           align-items: flex-end;
           gap: 8px;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-          transition: all 0.2s;
         }
         .chat-input-box:focus-within {
           border-color: #10B981;
@@ -193,6 +235,21 @@ export default function ChatPage() {
         }
         .chat-textarea::placeholder {
           color: #9CA3AF;
+        }
+        .icon-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          border: none;
+          background: #F3F4F6;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .icon-btn:hover {
+          background: #E5E7EB;
         }
         .send-btn {
           width: 36px;
@@ -251,8 +308,10 @@ export default function ChatPage() {
             <div style={{ width: 56, height: 56, borderRadius: 16, background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
               <Zap size={32} fill="#F59E0B" color="#F59E0B" />
             </div>
+
             <h1 className="hero-title">Super Agente</h1>
             <p className="hero-subtitle">Como posso ajudar você hoje?</p>
+
             <div className="cards-grid">
               {modos.map((m, i) => (
                 <button
@@ -273,6 +332,26 @@ export default function ChatPage() {
 
         <div className="chat-input-wrapper">
           <div className="chat-input-box">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*,.pdf,.doc,.docx,.txt"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleUpload(file);
+              }}
+            />
+
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={() => fileRef.current?.click()}
+              disabled={loading}
+            >
+              <Paperclip size={18} />
+            </button>
+
             <textarea
               className="chat-textarea"
               placeholder="Digite sua mensagem..."
@@ -286,6 +365,7 @@ export default function ChatPage() {
                 }
               }}
             />
+
             <button
               className="send-btn"
               onClick={enviar}

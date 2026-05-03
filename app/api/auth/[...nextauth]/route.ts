@@ -1,24 +1,15 @@
-import NextAuth from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
+import { NextResponse } from 'next/server';
 
-const handler = NextAuth({
-  providers: [
-    CredentialsProvider({
-      name: "Dev Login",
-      credentials: {},
-      async authorize() {
-        return {
-          id: "dev-user",
-          name: "Dev User",
-          email: "dev@local.com",
-        };
-      },
-    }),
-  ],
-  secret: process.env.NEXTAUTH_SECRET || "dev-secret",
-  session: {
-    strategy: "jwt",
-  },
-});
+export async function GET() {
+  return NextResponse.json({
+    user: null,
+    expires: new Date(Date.now() + 86400000).toISOString(),
+  });
+}
 
-export { handler as GET, handler as POST };
+export async function POST() {
+  return NextResponse.json({
+    user: null,
+    expires: new Date(Date.now() + 86400000).toISOString(),
+  });
+}

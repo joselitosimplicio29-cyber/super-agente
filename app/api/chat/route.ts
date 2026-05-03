@@ -23,6 +23,7 @@ CAPACIDADES:
 - Use buscar_web SEMPRE que precisar de informação atual: notícias, preços, eventos, fatos recentes
 - Use ler_pagina quando precisar do conteúdo COMPLETO de uma matéria após buscar
 - SEMPRE cite as fontes (URL) quando usar informação da web
+- Você também pode analisar imagens quando elas forem enviadas pelo usuário
 
 ESTILO:
 - Português brasileiro, profissional e direto
@@ -71,6 +72,7 @@ async function buscarWeb(query: string, tipo: 'web' | 'noticias' = 'web') {
   }
 
   const endpoint = tipo === 'noticias' ? 'news' : 'search';
+
   const response = await fetch(`https://google.serper.dev/${endpoint}`, {
     method: 'POST',
     headers: {
@@ -92,6 +94,7 @@ async function buscarWeb(query: string, tipo: 'web' | 'noticias' = 'web') {
       url: item.link,
       resumo: item.snippet,
     }));
+
     return { tipo: 'noticias', resultados: news };
   }
 
@@ -102,12 +105,15 @@ async function buscarWeb(query: string, tipo: 'web' | 'noticias' = 'web') {
   }));
 
   const resultado: any = { tipo: 'web', resultados: organic };
+
   if (data.answerBox?.answer || data.answerBox?.snippet) {
     resultado.resposta_direta = data.answerBox.answer || data.answerBox.snippet;
   }
+
   if (data.knowledgeGraph?.description) {
     resultado.contexto = data.knowledgeGraph.description;
   }
+
   return resultado;
 }
 
@@ -124,17 +130,21 @@ async function lerPagina(url: string) {
   if (!response.ok) throw new Error(`Jina retornou ${response.status}`);
 
   let texto = await response.text();
+
   if (texto.length > 50000) {
     texto = texto.slice(0, 50000) + '\n\n[...conteúdo truncado...]';
   }
+
   return { url, conteudo: texto };
 }
 
 async function executarFerramenta(name: string, input: any) {
   console.log(`[TOOL] 🔧 ${name}:`, JSON.stringify(input).slice(0, 200));
+
   try {
     if (name === 'buscar_web') return await buscarWeb(input.query, input.tipo || 'web');
     if (name === 'ler_pagina') return await lerPagina(input.url);
+
     return { erro: `Ferramenta desconhecida: ${name}` };
   } catch (error: any) {
     console.error(`[TOOL] ❌ ${name}:`, error.message);
@@ -147,17 +157,29 @@ interface ChatMessage {
   content: string;
 }
 
+interface ArquivoUpload {
+  name?: string;
+  url?: string;
+  type?: string;
+  base64?: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     if (!process.env.ANTHROPIC_API_KEY) {
-      return NextResponse.json({ error: 'ANTHROPIC_API_KEY não configurada' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'ANTHROPIC_API_KEY não configurada' },
+        { status: 500 }
+      );
     }
 
     const body = await request.json();
+
     const messages: ChatMessage[] = body.messages || [];
     const singleMessage: string | undefined = body.message;
     const conversation_id = body.conversation_id;
     const cliente = body.cliente;
+    const arquivo: ArquivoUpload | undefined = body.arquivo;
 
     let anthropicMessages: { role: 'user' | 'assistant'; content: string }[] = [];
 
@@ -177,11 +199,16 @@ export async function POST(request: NextRequest) {
     }
 
     const lastMsg = anthropicMessages[anthropicMessages.length - 1];
+
     if (lastMsg.role !== 'user') {
-      return NextResponse.json({ error: 'A última mensagem deve ser do usuário' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'A última mensagem deve ser do usuário' },
+        { status: 400 }
+      );
     }
 
     const cleaned: { role: 'user' | 'assistant'; content: string }[] = [];
+
     for (const msg of anthropicMessages) {
       if (cleaned.length > 0 && cleaned[cleaned.length - 1].role === msg.role) {
         cleaned[cleaned.length - 1].content += '\n' + msg.content;
@@ -190,24 +217,62 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`[CHAT] Conversa: ${conversation_id || 'nova'} | Mensagens: ${cleaned.length}`);
+    console.log(
+      `[CHAT] Conversa: ${conversation_id || 'nova'} | Mensagens: ${cleaned.length} | Arquivo: ${arquivo?.name || 'nenhum'}`
+    );
 
     const systemPrompt = cliente
-      ? `${SYSTEM_PROMPT}\n\nCLIENTE EM FOCO: ${cliente.nome || 'não especificado'}${cliente.segmento ? ` (${cliente.segmento})` : ''}`
+      ? `${SYSTEM_PROMPT}\n\nCLIENTE EM FOCO: ${cliente.nome || 'não especificado'}${
+          cliente.segmento ? ` (${cliente.segmento})` : ''
+        }`
       : SYSTEM_PROMPT;
 
-    const apiMessages: Anthropic.MessageParam[] = cleaned.map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
+    const apiMessages: Anthropic.MessageParam[] = cleaned.map((m, index) => {
+      const isLastUserMessage = index === cleaned.length - 1 && m.role === 'user';
+
+      if (
+        isLastUserMessage &&
+        arquivo?.base64 &&
+        arquivo?.type &&
+        arquivo.type.startsWith('image/')
+      ) {
+        return {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: m.content || 'Analise esta imagem.',
+            },
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: arquivo.type as
+                  | 'image/jpeg'
+                  | 'image/png'
+                  | 'image/gif'
+                  | 'image/webp',
+                data: arquivo.base64,
+              },
+            },
+          ],
+        };
+      }
+
+      return {
+        role: m.role,
+        content: m.content,
+      };
+    });
 
     const fontes: Array<{ titulo: string; url: string }> = [];
     const buscas: string[] = [];
+
     let totalIn = 0;
     let totalOut = 0;
     let respostaFinal = '';
-
     let iter = 0;
+
     while (iter < MAX_TOOL_ITERATIONS) {
       iter++;
 
@@ -229,7 +294,11 @@ export async function POST(request: NextRequest) {
         if (block.type === 'text') {
           textoRodada += block.text;
         } else if (block.type === 'tool_use') {
-          toolUses.push({ id: block.id, name: block.name, input: block.input });
+          toolUses.push({
+            id: block.id,
+            name: block.name,
+            input: block.input,
+          });
         }
       }
 
@@ -237,11 +306,17 @@ export async function POST(request: NextRequest) {
         respostaFinal += (respostaFinal ? '\n\n' : '') + textoRodada;
       }
 
-      if (response.stop_reason === 'end_turn' || toolUses.length === 0) break;
+      if (response.stop_reason === 'end_turn' || toolUses.length === 0) {
+        break;
+      }
 
-      apiMessages.push({ role: 'assistant', content: response.content });
+      apiMessages.push({
+        role: 'assistant',
+        content: response.content,
+      });
 
       const toolResults: Anthropic.ToolResultBlockParam[] = [];
+
       for (const tu of toolUses) {
         if (tu.name === 'buscar_web') buscas.push(tu.input.query);
 
@@ -249,7 +324,10 @@ export async function POST(request: NextRequest) {
 
         if (tu.name === 'buscar_web' && (resultado as any).resultados) {
           for (const r of (resultado as any).resultados) {
-            fontes.push({ titulo: r.titulo || r.title, url: r.url });
+            fontes.push({
+              titulo: r.titulo || r.title,
+              url: r.url,
+            });
           }
         }
 
@@ -260,14 +338,23 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      apiMessages.push({ role: 'user', content: toolResults });
+      apiMessages.push({
+        role: 'user',
+        content: toolResults,
+      });
     }
 
-    const fontesUnicas = Array.from(new Map(fontes.map((f) => [f.url, f])).values()).slice(0, 10);
+    const fontesUnicas = Array.from(
+      new Map(fontes.map((f) => [f.url, f])).values()
+    ).slice(0, 10);
 
-    if (!respostaFinal) respostaFinal = 'Não consegui gerar uma resposta.';
+    if (!respostaFinal) {
+      respostaFinal = 'Não consegui gerar uma resposta.';
+    }
 
-    console.log(`[CHAT] ✅ iter=${iter} | buscas=${buscas.length} | tokens=${totalIn}+${totalOut}`);
+    console.log(
+      `[CHAT] ✅ iter=${iter} | buscas=${buscas.length} | tokens=${totalIn}+${totalOut}`
+    );
 
     return NextResponse.json({
       text: respostaFinal,
@@ -285,17 +372,31 @@ export async function POST(request: NextRequest) {
     console.error('[CHAT] ❌', error);
 
     if (error?.status === 401) {
-      return NextResponse.json({ error: 'API key Anthropic inválida' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'API key Anthropic inválida' },
+        { status: 401 }
+      );
     }
+
     if (error?.status === 429) {
-      return NextResponse.json({ error: 'Limite de requisições atingido' }, { status: 429 });
+      return NextResponse.json(
+        { error: 'Limite de requisições atingido' },
+        { status: 429 }
+      );
     }
+
     if (error?.status === 404) {
-      return NextResponse.json({ error: `Modelo ${MODEL} não disponível` }, { status: 404 });
+      return NextResponse.json(
+        { error: `Modelo ${MODEL} não disponível` },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json(
-      { error: 'Erro ao processar', details: error?.message || 'Desconhecido' },
+      {
+        error: 'Erro ao processar',
+        details: error?.message || 'Desconhecido',
+      },
       { status: 500 }
     );
   }
